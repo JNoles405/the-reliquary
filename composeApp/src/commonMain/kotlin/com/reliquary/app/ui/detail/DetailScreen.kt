@@ -39,6 +39,7 @@ import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.util.formatDate
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryRed
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
@@ -111,7 +112,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                     icon = Icons.Filled.People,
                     background = MaterialTheme.colorScheme.onBackground,
                     foreground = Color.Black,
-                ) { navigator.push(Screen.Loans) }
+                ) { navigator.push(Screen.LoanItem(current.id)) }
                 PillButton(
                     label = "Edit",
                     icon = Icons.Filled.Edit,
@@ -171,21 +172,4 @@ private fun MetaRow(label: String, value: String?) {
         Text(label, color = ReliquaryMuted, fontSize = 14.sp, modifier = Modifier.width(120.dp))
         Text(value, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, modifier = Modifier.weight(1f))
     }
-}
-
-/** Minimal epoch-millis → yyyy-mm-dd without pulling in a date library yet. */
-private fun formatDate(epochMillis: Long): String {
-    val days = epochMillis / 86_400_000L
-    // Civil-from-days (Howard Hinnant's algorithm) for a UTC calendar date.
-    var z = days + 719468
-    val era = (if (z >= 0) z else z - 146096) / 146097
-    val doe = z - era * 146097
-    val yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365
-    val y = yoe + era * 400
-    val doy = doe - (365 * yoe + yoe / 4 - yoe / 100)
-    val mp = (5 * doy + 2) / 153
-    val d = doy - (153 * mp + 2) / 5 + 1
-    val m = if (mp < 10) mp + 3 else mp - 9
-    val year = if (m <= 2) y + 1 else y
-    return "$year-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}"
 }

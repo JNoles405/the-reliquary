@@ -37,6 +37,7 @@ import com.reliquary.app.ui.detail.DetailScreen
 import com.reliquary.app.ui.edit.EditItemScreen
 import com.reliquary.app.ui.imports.SearchImportScreen
 import com.reliquary.app.ui.library.LibraryScreen
+import com.reliquary.app.ui.loans.LoanScreen
 import com.reliquary.app.ui.loans.LoansScreen
 import com.reliquary.app.ui.settings.SettingsScreen
 import com.reliquary.app.ui.theme.ReliquaryMuted
@@ -69,6 +70,7 @@ fun ReliquaryApp(container: AppContainer) {
                     SearchImportScreen(container, screen.mediaType, screen.customTabId, navigator)
                 is Screen.EditItem ->
                     EditItemScreen(container, screen.itemId, screen.mediaType, screen.customTabId, navigator)
+                is Screen.LoanItem -> LoanScreen(container, screen.itemId, navigator)
                 Screen.Loans -> LoansScreen(container, navigator)
                 Screen.Settings -> SettingsScreen(container, navigator)
             }

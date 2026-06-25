@@ -13,6 +13,7 @@ sealed interface Screen {
     data class Detail(val itemId: String) : Screen
     data class SearchImport(val mediaType: MediaType, val customTabId: String?) : Screen
     data class EditItem(val itemId: String?, val mediaType: MediaType, val customTabId: String?) : Screen
+    data class LoanItem(val itemId: String) : Screen
     data object Loans : Screen
     data object Settings : Screen
 }
