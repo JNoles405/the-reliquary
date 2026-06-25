@@ -46,6 +46,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.sqldelight.android.driver)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.play.services.code.scanner)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)

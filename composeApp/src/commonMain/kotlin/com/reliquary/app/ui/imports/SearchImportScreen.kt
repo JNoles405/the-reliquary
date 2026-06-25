@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.metadata.MetadataResult
+import com.reliquary.app.scan.rememberBarcodeScanner
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
@@ -57,6 +59,7 @@ fun SearchImportScreen(
     navigator: Navigator,
 ) {
     val scope = rememberCoroutineScope()
+    val scanner = rememberBarcodeScanner()
     var query by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<MetadataResult>>(emptyList()) }
@@ -153,6 +156,23 @@ fun SearchImportScreen(
                 foreground = MaterialTheme.colorScheme.onBackground,
                 onClick = { run(byBarcode = true) },
             )
+            if (scanner != null) {
+                PillButton(
+                    label = "Scan",
+                    icon = Icons.Filled.PhotoCamera,
+                    background = ReliquarySurfaceVariant,
+                    foreground = MaterialTheme.colorScheme.onBackground,
+                    onClick = {
+                        scope.launch {
+                            val code = scanner.scan()
+                            if (!code.isNullOrBlank()) {
+                                query = code
+                                run(byBarcode = true)
+                            }
+                        }
+                    },
+                )
+            }
         }
         Spacer(Modifier.height(16.dp))
 
