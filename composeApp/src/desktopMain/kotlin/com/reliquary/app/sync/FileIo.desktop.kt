@@ -12,3 +12,10 @@ actual fun writeTextFile(path: String, content: String) {
 
 actual fun readTextFile(path: String): String? =
     File(path).takeIf { it.exists() }?.readText()
+
+actual fun coversDir(): String =
+    File(desktopDataDir(), "covers").apply { if (!exists()) mkdirs() }.absolutePath
+
+actual fun writeBytesFile(path: String, bytes: ByteArray) {
+    File(path).writeBytes(bytes)
+}

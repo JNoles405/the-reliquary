@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -58,6 +59,11 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
 
     val activeLoan = loans.firstOrNull { it.isActive }
     val borrowerName = activeLoan?.let { container.repository.getPerson(it.personId)?.name }
+
+    // Cache the remote cover to local storage the first time this item is viewed.
+    LaunchedEffect(current.id) {
+        container.coverCache.ensureCached(current, container.repository)
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(420.dp)) {

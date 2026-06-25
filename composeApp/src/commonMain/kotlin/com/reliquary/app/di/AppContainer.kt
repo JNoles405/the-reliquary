@@ -3,6 +3,7 @@ package com.reliquary.app.di
 import app.cash.sqldelight.db.SqlDriver
 import com.reliquary.app.data.ReliquaryRepository
 import com.reliquary.app.db.ReliquaryDatabase
+import com.reliquary.app.images.CoverCache
 import com.reliquary.app.metadata.ApiKeyStore
 import com.reliquary.app.metadata.MetadataService
 import com.reliquary.app.metadata.providers.ComicVineProvider
@@ -29,6 +30,7 @@ class AppContainer(driver: SqlDriver) {
     val apiKeyStore = ApiKeyStore(repository)
     val syncService = SyncService(repository)
     val lanSync = LanSyncManager(syncService)
+    val coverCache = CoverCache(httpClient)
 
     val metadataService: MetadataService = MetadataService(
         listOf(

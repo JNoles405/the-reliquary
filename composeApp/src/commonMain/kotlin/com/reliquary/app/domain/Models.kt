@@ -1,6 +1,7 @@
 package com.reliquary.app.domain
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 /**
  * A single piece of media in the collection. Mirrors the `item` table but uses
@@ -18,7 +19,8 @@ data class CollectionItem(
     val creators: String? = null,
     val releaseYear: Long? = null,
     val description: String? = null,
-    val coverPath: String? = null,
+    // Device-local cached image path — never synced (each device caches its own).
+    @Transient val coverPath: String? = null,
     val coverUrl: String? = null,
     val barcode: String? = null,
     val identifierType: String? = null,

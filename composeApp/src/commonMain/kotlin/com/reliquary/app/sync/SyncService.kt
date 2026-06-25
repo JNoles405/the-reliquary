@@ -57,7 +57,8 @@ class SyncService(private val repository: ReliquaryRepository) {
         bundle.items.forEach { incoming ->
             val existing = existingItems[incoming.id]
             if (existing == null || incoming.updatedAt >= existing.updatedAt) {
-                repository.upsertItem(incoming); items++
+                // coverPath is device-local (@Transient, so absent here) — keep ours.
+                repository.upsertItem(incoming.copy(coverPath = existing?.coverPath)); items++
             }
         }
 

@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
+import okio.Path.Companion.toPath
 
 /** Cover art with a graceful placeholder when there is no image. */
 @Composable
@@ -47,8 +48,11 @@ fun CoverImage(
             )
         }
     } else {
+        // Remote URLs go through the network fetcher; anything else is treated as a
+        // local cached file and loaded from disk via an okio path.
+        val model: Any = if (url.startsWith("http", ignoreCase = true)) url else url.toPath()
         AsyncImage(
-            model = url,
+            model = model,
             contentDescription = contentDescription,
             modifier = modifier,
             contentScale = contentScale,
