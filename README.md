@@ -96,13 +96,14 @@ A `local.properties` pointing at your Android SDK is required for Android builds
 ## Roadmap
 
 - [x] Project scaffold: KMP + Compose Multiplatform shell on Windows & Android
-- [ ] Local database (SQLDelight) + repositories
-- [ ] Domain model for items, editions, people, loans, custom tabs
-- [ ] Metadata provider framework + keyless providers (Open Library, MusicBrainz)
-- [ ] Key-gated providers (TMDB, IGDB, ComicVine, Discogs) + Settings screen
-- [ ] Barcode scanning (Android camera) + manual barcode entry (desktop)
-- [ ] Item detail screen (Netflix hero layout)
-- [ ] Loan management
-- [ ] Custom tabs
-- [ ] Manual sync: file export/import
-- [ ] LAN sync
+- [x] Local database (SQLDelight) + repositories
+- [x] Domain model for items, people, loans, custom tabs
+- [x] Metadata provider framework + keyless providers (Open Library, Google Books, MusicBrainz)
+- [x] Key-gated providers (TMDB, IGDB, ComicVine, Discogs) + Settings screen
+- [x] Barcode scanning (Android camera via ML Kit) + manual / USB-scanner entry
+- [x] Item detail screen (Netflix hero layout)
+- [x] Loan management
+- [x] Custom tabs
+- [x] Manual sync: file export/import with last-write-wins merge
+- [ ] LAN sync (planned, on top of the file baseline)
+- [ ] Cover-image caching to local files (sync currently relies on cover URLs)
