@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
-import com.reliquary.app.domain.MediaType
+import com.reliquary.app.ui.ActiveTab
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
@@ -47,11 +47,15 @@ import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
 
 @Composable
-fun LibraryScreen(container: AppContainer, mediaType: MediaType, navigator: Navigator) {
-    val items by remember(mediaType) {
-        container.repository.itemsByType(mediaType.name)
+fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigator) {
+    val items by remember(active) {
+        when (active) {
+            is ActiveTab.Builtin -> container.repository.itemsByType(active.type.name)
+            is ActiveTab.Custom -> container.repository.itemsByCustomTab(active.tab.id)
+        }
     }.collectAsState(emptyList())
     val featured = items.firstOrNull()
+    val canImport = active is ActiveTab.Builtin
 
     LazyVerticalGrid(
         columns = GridCells.Adaptive(150.dp),
@@ -62,20 +66,25 @@ fun LibraryScreen(container: AppContainer, mediaType: MediaType, navigator: Navi
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Hero(
-                mediaType = mediaType,
+                title = active.title,
                 featured = featured,
                 count = items.size,
+                showImport = canImport && active.supportsBarcode,
                 onView = { featured?.let { navigator.push(Screen.Detail(it.id)) } },
-                onAdd = { navigator.push(Screen.EditItem(null, mediaType, null)) },
-                onImport = { navigator.push(Screen.SearchImport(mediaType, null)) },
+                onAdd = { navigator.push(Screen.EditItem(null, active.mediaTypeName, active.customTabId)) },
+                onImport = {
+                    if (active is ActiveTab.Builtin) {
+                        navigator.push(Screen.SearchImport(active.type, active.customTabId))
+                    }
+                },
             )
         }
         if (items.isEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }) { EmptyState(mediaType) }
+            item(span = { GridItemSpan(maxLineSpan) }) { EmptyState(active.title) }
         } else {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
-                    text = "All ${mediaType.displayName}",
+                    text = "All ${active.title}",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
@@ -91,9 +100,10 @@ fun LibraryScreen(container: AppContainer, mediaType: MediaType, navigator: Navi
 
 @Composable
 private fun Hero(
-    mediaType: MediaType,
+    title: String,
     featured: CollectionItem?,
     count: Int,
+    showImport: Boolean,
     onView: () -> Unit,
     onAdd: () -> Unit,
     onImport: () -> Unit,
@@ -123,7 +133,7 @@ private fun Hero(
         )
         Column(Modifier.align(Alignment.BottomStart).padding(24.dp)) {
             Text(
-                text = featured?.title ?: mediaType.displayName,
+                text = featured?.title ?: title,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Black,
                 fontSize = 40.sp,
@@ -155,7 +165,7 @@ private fun Hero(
                     foreground = MaterialTheme.colorScheme.onBackground,
                     onClick = onAdd,
                 )
-                if (mediaType.supportsBarcode) {
+                if (showImport) {
                     PillButton(
                         label = "Scan / Search",
                         icon = Icons.Filled.QrCodeScanner,
@@ -193,13 +203,13 @@ private fun ItemCard(item: CollectionItem, onClick: () -> Unit) {
 }
 
 @Composable
-private fun EmptyState(mediaType: MediaType) {
+private fun EmptyState(title: String) {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "No ${mediaType.displayName.lowercase()} yet",
+            text = "No ${title.lowercase()} yet",
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,

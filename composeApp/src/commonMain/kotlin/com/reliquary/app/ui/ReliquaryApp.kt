@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +40,7 @@ import com.reliquary.app.ui.imports.SearchImportScreen
 import com.reliquary.app.ui.library.LibraryScreen
 import com.reliquary.app.ui.loans.LoanScreen
 import com.reliquary.app.ui.loans.LoansScreen
+import com.reliquary.app.ui.settings.CustomTabsScreen
 import com.reliquary.app.ui.settings.SettingsScreen
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryRed
@@ -46,32 +48,40 @@ import com.reliquary.app.ui.theme.ReliquaryRed
 @Composable
 fun ReliquaryApp(container: AppContainer) {
     val navigator = rememberNavigator()
-    var selectedTab by remember { mutableStateOf(MediaType.MOVIES) }
+    var activeTab by remember { mutableStateOf<ActiveTab>(ActiveTab.Builtin(MediaType.MOVIES)) }
+    val customTabs by remember { container.repository.customTabs() }.collectAsState(emptyList())
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopNav(
-                selected = selectedTab,
+                active = activeTab,
                 navigator = navigator,
-                onSelect = {
-                    selectedTab = it
+                customTabNames = customTabs,
+                onSelectBuiltin = {
+                    activeTab = ActiveTab.Builtin(it)
                     navigator.resetTo(Screen.Library)
                 },
+                onSelectCustom = { tab ->
+                    activeTab = ActiveTab.Custom(tab)
+                    navigator.resetTo(Screen.Library)
+                },
+                onManageTabs = { navigator.push(Screen.CustomTabs) },
                 onSettings = { navigator.push(Screen.Settings) },
             )
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (val screen = navigator.current) {
-                Screen.Library -> LibraryScreen(container, selectedTab, navigator)
+                Screen.Library -> LibraryScreen(container, activeTab, navigator)
                 is Screen.Detail -> DetailScreen(container, screen.itemId, navigator)
                 is Screen.SearchImport ->
                     SearchImportScreen(container, screen.mediaType, screen.customTabId, navigator)
                 is Screen.EditItem ->
-                    EditItemScreen(container, screen.itemId, screen.mediaType, screen.customTabId, navigator)
+                    EditItemScreen(container, screen.itemId, screen.mediaTypeName, screen.customTabId, navigator)
                 is Screen.LoanItem -> LoanScreen(container, screen.itemId, navigator)
                 Screen.Loans -> LoansScreen(container, navigator)
+                Screen.CustomTabs -> CustomTabsScreen(container, navigator)
                 Screen.Settings -> SettingsScreen(container, navigator)
             }
         }
@@ -80,11 +90,15 @@ fun ReliquaryApp(container: AppContainer) {
 
 @Composable
 private fun TopNav(
-    selected: MediaType,
+    active: ActiveTab,
     navigator: Navigator,
-    onSelect: (MediaType) -> Unit,
+    customTabNames: List<com.reliquary.app.domain.CustomTab>,
+    onSelectBuiltin: (MediaType) -> Unit,
+    onSelectCustom: (com.reliquary.app.domain.CustomTab) -> Unit,
+    onManageTabs: () -> Unit,
     onSettings: () -> Unit,
 ) {
+    val onLibrary = navigator.current == Screen.Library
     Row(
         Modifier
             .fillMaxWidth()
@@ -110,28 +124,24 @@ private fun TopNav(
             modifier = Modifier.clickable { navigator.resetTo(Screen.Library) },
         )
         Spacer(Modifier.width(20.dp))
-        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
+        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
             MediaType.entries.forEach { type ->
-                val active = type == selected && navigator.current == Screen.Library
-                Text(
-                    text = type.displayName,
-                    color = if (active) MaterialTheme.colorScheme.onBackground else ReliquaryMuted,
-                    fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 15.sp,
-                    modifier = Modifier
-                        .clickable { onSelect(type) }
-                        .padding(horizontal = 9.dp, vertical = 4.dp),
+                val selected = onLibrary && active is ActiveTab.Builtin && active.type == type
+                TabLabel(type.displayName, selected) { onSelectBuiltin(type) }
+            }
+            customTabNames.forEach { tab ->
+                val selected = onLibrary && active is ActiveTab.Custom && active.tab.id == tab.id
+                TabLabel(tab.name, selected) { onSelectCustom(tab) }
+            }
+            IconButton(onClick = onManageTabs) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = "Manage custom tabs",
+                    tint = ReliquaryMuted,
+                    modifier = Modifier.size(18.dp),
                 )
             }
-            Text(
-                text = "Loans",
-                color = if (navigator.current == Screen.Loans) MaterialTheme.colorScheme.onBackground else ReliquaryMuted,
-                fontWeight = if (navigator.current == Screen.Loans) FontWeight.Bold else FontWeight.Normal,
-                fontSize = 15.sp,
-                modifier = Modifier
-                    .clickable { navigator.resetTo(Screen.Loans) }
-                    .padding(horizontal = 9.dp, vertical = 4.dp),
-            )
+            TabLabel("Loans", navigator.current == Screen.Loans) { navigator.resetTo(Screen.Loans) }
         }
         IconButton(onClick = onSettings) {
             Icon(
@@ -142,4 +152,15 @@ private fun TopNav(
             )
         }
     }
+}
+
+@Composable
+private fun TabLabel(text: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = text,
+        color = if (selected) MaterialTheme.colorScheme.onBackground else ReliquaryMuted,
+        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        fontSize = 15.sp,
+        modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 9.dp, vertical = 4.dp),
+    )
 }

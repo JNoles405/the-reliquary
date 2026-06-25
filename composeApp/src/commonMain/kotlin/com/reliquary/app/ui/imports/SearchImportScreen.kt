@@ -123,7 +123,7 @@ fun SearchImportScreen(
                         icon = null,
                         background = ReliquaryRed,
                         foreground = MaterialTheme.colorScheme.onBackground,
-                    ) { navigator.push(Screen.EditItem(null, mediaType, customTabId)) }
+                    ) { navigator.push(Screen.EditItem(null, mediaType.name, customTabId)) }
                 }
             }
             Spacer(Modifier.height(14.dp))

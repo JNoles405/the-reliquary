@@ -40,11 +40,13 @@ import com.reliquary.app.ui.theme.ReliquaryRed
 fun EditItemScreen(
     container: AppContainer,
     itemId: String?,
-    mediaType: MediaType,
+    mediaTypeName: String,
     customTabId: String?,
     navigator: Navigator,
 ) {
     val existing = remember(itemId) { itemId?.let { container.repository.getItem(it) } }
+    val typeLabel = MediaType.entries.firstOrNull { it.name == mediaTypeName }?.displayName?.trimEnd('s')
+        ?: "Item"
 
     var title by remember { mutableStateOf(existing?.title ?: "") }
     var subtitle by remember { mutableStateOf(existing?.subtitle ?: "") }
@@ -64,7 +66,7 @@ fun EditItemScreen(
         val now = nowMillis()
         val item = CollectionItem(
             id = existing?.id ?: newId(),
-            mediaType = existing?.mediaType ?: mediaType.name,
+            mediaType = existing?.mediaType ?: mediaTypeName,
             customTabId = existing?.customTabId ?: customTabId,
             title = title.trim(),
             subtitle = subtitle.orNull(),
@@ -94,7 +96,7 @@ fun EditItemScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = if (existing == null) "Add ${mediaType.displayName.trimEnd('s')}" else "Edit",
+            text = if (existing == null) "Add $typeLabel" else "Edit",
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
             fontSize = 24.sp,

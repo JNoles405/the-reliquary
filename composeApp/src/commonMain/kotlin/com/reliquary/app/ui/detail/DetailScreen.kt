@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
-import com.reliquary.app.domain.MediaType
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
@@ -119,9 +118,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                     background = ReliquarySurfaceVariant,
                     foreground = MaterialTheme.colorScheme.onBackground,
                 ) {
-                    val type = runCatching { MediaType.valueOf(current.mediaType) }.getOrNull()
-                        ?: MediaType.MOVIES
-                    navigator.push(Screen.EditItem(current.id, type, current.customTabId))
+                    navigator.push(Screen.EditItem(current.id, current.mediaType, current.customTabId))
                 }
                 PillButton(
                     label = "Delete",
