@@ -31,3 +31,16 @@ fun JsonArray.strings(): List<String> = mapNotNull { (it as? JsonPrimitive)?.con
 /** First 4-digit run in a free-form date string, as a year. */
 fun yearFrom(date: String?): Long? =
     date?.let { Regex("\\d{4}").find(it)?.value?.toLongOrNull() }
+
+/** UTC calendar year for a Unix timestamp in seconds (civil-from-days). */
+fun yearFromEpochSeconds(seconds: Long): Long {
+    var z = seconds / 86_400L + 719468
+    val era = (if (z >= 0) z else z - 146096) / 146097
+    val doe = z - era * 146097
+    val yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365
+    val y = yoe + era * 400
+    val doy = doe - (365 * yoe + yoe / 4 - yoe / 100)
+    val mp = (5 * doy + 2) / 153
+    val m = if (mp < 10) mp + 3 else mp - 9
+    return if (m <= 2) y + 1 else y
+}

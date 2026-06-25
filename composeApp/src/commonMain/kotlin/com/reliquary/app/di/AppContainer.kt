@@ -3,10 +3,15 @@ package com.reliquary.app.di
 import app.cash.sqldelight.db.SqlDriver
 import com.reliquary.app.data.ReliquaryRepository
 import com.reliquary.app.db.ReliquaryDatabase
+import com.reliquary.app.metadata.ApiKeyStore
 import com.reliquary.app.metadata.MetadataService
+import com.reliquary.app.metadata.providers.ComicVineProvider
+import com.reliquary.app.metadata.providers.DiscogsProvider
 import com.reliquary.app.metadata.providers.GoogleBooksProvider
+import com.reliquary.app.metadata.providers.IgdbProvider
 import com.reliquary.app.metadata.providers.MusicBrainzProvider
 import com.reliquary.app.metadata.providers.OpenLibraryProvider
+import com.reliquary.app.metadata.providers.TmdbProvider
 import com.reliquary.app.network.createHttpClient
 
 /**
@@ -19,6 +24,7 @@ class AppContainer(driver: SqlDriver) {
     val repository: ReliquaryRepository = ReliquaryRepository(database)
 
     val httpClient = createHttpClient()
+    val apiKeyStore = ApiKeyStore(repository)
 
     val metadataService: MetadataService = MetadataService(
         listOf(
@@ -26,8 +32,11 @@ class AppContainer(driver: SqlDriver) {
             OpenLibraryProvider(httpClient),
             GoogleBooksProvider(httpClient),
             MusicBrainzProvider(httpClient),
-            // Key-gated providers (TMDB, IGDB, ComicVine, Discogs) are added in
-            // the next increment, activated from the Settings screen.
+            // Key-gated providers — activate once a key is saved in Settings.
+            TmdbProvider(httpClient, apiKeyStore),
+            DiscogsProvider(httpClient, apiKeyStore),
+            ComicVineProvider(httpClient, apiKeyStore),
+            IgdbProvider(httpClient, apiKeyStore),
         ),
     )
 }
