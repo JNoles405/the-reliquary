@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.reliquary.app.data.ReliquaryRepository
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryRed
@@ -50,8 +52,9 @@ import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
  * detail screens, scanning and loans are layered on in later increments.
  */
 @Composable
-fun ReliquaryApp() {
+fun ReliquaryApp(repository: ReliquaryRepository) {
     var selected by remember { mutableStateOf(MediaType.MOVIES) }
+    val count by remember(selected) { repository.countByType(selected.name) }.collectAsState(0L)
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -62,7 +65,7 @@ fun ReliquaryApp() {
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            HeroBanner(selected)
+            HeroBanner(selected, count)
             Spacer(Modifier.height(24.dp))
             Shelf(title = "Recently Added")
             Spacer(Modifier.height(20.dp))
@@ -103,7 +106,7 @@ private fun TopNav(selected: MediaType, onSelect: (MediaType) -> Unit) {
 }
 
 @Composable
-private fun HeroBanner(selected: MediaType) {
+private fun HeroBanner(selected: MediaType, count: Long) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -142,8 +145,13 @@ private fun HeroBanner(selected: MediaType) {
                 fontSize = 48.sp,
             )
             Spacer(Modifier.height(8.dp))
+            val subtitle = if (count > 0) {
+                "$count ${if (count == 1L) "title" else "titles"} in your collection"
+            } else {
+                "Your ${selected.displayName.lowercase()} collection lives here."
+            }
             Text(
-                text = "Your ${selected.displayName.lowercase()} collection lives here.",
+                text = subtitle,
                 color = ReliquaryMuted,
                 fontSize = 16.sp,
             )

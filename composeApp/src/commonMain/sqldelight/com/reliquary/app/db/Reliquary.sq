@@ -1,0 +1,183 @@
+-- The Reliquary local database schema.
+-- IDs are TEXT (UUIDs) so records merge cleanly across devices during manual
+-- sync. Every syncable row carries updated_at (epoch millis) and a soft-delete
+-- flag, which the merge uses for last-write-wins reconciliation.
+
+-- ===========================================================================
+-- Custom tabs (user-defined media categories)
+-- ===========================================================================
+CREATE TABLE custom_tab (
+    id               TEXT NOT NULL PRIMARY KEY,
+    name             TEXT NOT NULL,
+    icon             TEXT,
+    position         INTEGER NOT NULL DEFAULT 0,
+    supports_barcode INTEGER NOT NULL DEFAULT 0,
+    updated_at       INTEGER NOT NULL,
+    deleted          INTEGER NOT NULL DEFAULT 0
+);
+
+selectAllCustomTabs:
+SELECT * FROM custom_tab WHERE deleted = 0 ORDER BY position, name;
+
+upsertCustomTab:
+INSERT OR REPLACE INTO custom_tab(id, name, icon, position, supports_barcode, updated_at, deleted)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+softDeleteCustomTab:
+UPDATE custom_tab SET deleted = 1, updated_at = :updatedAt WHERE id = :id;
+
+-- ===========================================================================
+-- Items (a piece of media you own)
+-- ===========================================================================
+CREATE TABLE item (
+    id               TEXT NOT NULL PRIMARY KEY,
+    media_type       TEXT NOT NULL,            -- MOVIES/BOOKS/MUSIC/GAMES/COMICS/CUSTOM
+    custom_tab_id    TEXT,                      -- set when media_type = 'CUSTOM'
+    title            TEXT NOT NULL,
+    sort_title       TEXT,
+    subtitle         TEXT,
+    creators         TEXT,                      -- authors/directors/artists (display string)
+    release_year     INTEGER,
+    description      TEXT,
+    cover_path       TEXT,                      -- local cached image path
+    cover_url        TEXT,                      -- remote image url
+    barcode          TEXT,                      -- scanned UPC/EAN/ISBN
+    identifier_type  TEXT,                      -- ISBN/UPC/EAN/CATALOG/...
+    identifier       TEXT,
+    rating           REAL,
+    genres           TEXT,
+    format           TEXT,                      -- Blu-ray/Hardcover/Vinyl/PS5/...
+    location         TEXT,                      -- shelf/box label
+    extra_json       TEXT,                      -- provider-specific extra fields (JSON)
+    notes            TEXT,
+    favorite         INTEGER NOT NULL DEFAULT 0,
+    added_at         INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL,
+    deleted          INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX item_media_type_idx ON item(media_type);
+CREATE INDEX item_custom_tab_idx ON item(custom_tab_id);
+CREATE INDEX item_barcode_idx ON item(barcode);
+
+selectItemsByType:
+SELECT * FROM item
+WHERE deleted = 0 AND media_type = :mediaType
+ORDER BY COALESCE(sort_title, title) COLLATE NOCASE;
+
+selectItemsByCustomTab:
+SELECT * FROM item
+WHERE deleted = 0 AND custom_tab_id = :customTabId
+ORDER BY COALESCE(sort_title, title) COLLATE NOCASE;
+
+selectItemById:
+SELECT * FROM item WHERE id = :id;
+
+selectRecentItems:
+SELECT * FROM item WHERE deleted = 0 ORDER BY added_at DESC LIMIT :limit;
+
+searchItems:
+SELECT * FROM item
+WHERE deleted = 0
+  AND (title LIKE '%' || :q || '%'
+       OR creators LIKE '%' || :q || '%'
+       OR barcode = :q)
+ORDER BY COALESCE(sort_title, title) COLLATE NOCASE;
+
+countItemsByType:
+SELECT COUNT(*) FROM item WHERE deleted = 0 AND media_type = :mediaType;
+
+upsertItem:
+INSERT OR REPLACE INTO item(
+    id, media_type, custom_tab_id, title, sort_title, subtitle, creators,
+    release_year, description, cover_path, cover_url, barcode, identifier_type,
+    identifier, rating, genres, format, location, extra_json, notes, favorite,
+    added_at, updated_at, deleted
+) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+);
+
+softDeleteItem:
+UPDATE item SET deleted = 1, updated_at = :updatedAt WHERE id = :id;
+
+-- ===========================================================================
+-- People (whom you lend to)
+-- ===========================================================================
+CREATE TABLE person (
+    id          TEXT NOT NULL PRIMARY KEY,
+    name        TEXT NOT NULL,
+    contact     TEXT,
+    notes       TEXT,
+    updated_at  INTEGER NOT NULL,
+    deleted     INTEGER NOT NULL DEFAULT 0
+);
+
+selectAllPeople:
+SELECT * FROM person WHERE deleted = 0 ORDER BY name COLLATE NOCASE;
+
+selectPersonById:
+SELECT * FROM person WHERE id = :id;
+
+upsertPerson:
+INSERT OR REPLACE INTO person(id, name, contact, notes, updated_at, deleted)
+VALUES (?, ?, ?, ?, ?, ?);
+
+softDeletePerson:
+UPDATE person SET deleted = 1, updated_at = :updatedAt WHERE id = :id;
+
+-- ===========================================================================
+-- Loans (an item lent to a person)
+-- ===========================================================================
+CREATE TABLE loan (
+    id           TEXT NOT NULL PRIMARY KEY,
+    item_id      TEXT NOT NULL,
+    person_id    TEXT NOT NULL,
+    loaned_at    INTEGER NOT NULL,
+    due_at       INTEGER,
+    returned_at  INTEGER,
+    notes        TEXT,
+    updated_at   INTEGER NOT NULL,
+    deleted      INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX loan_item_idx ON loan(item_id);
+CREATE INDEX loan_person_idx ON loan(person_id);
+
+selectActiveLoans:
+SELECT * FROM loan WHERE deleted = 0 AND returned_at IS NULL ORDER BY due_at;
+
+selectActiveLoanForItem:
+SELECT * FROM loan WHERE deleted = 0 AND returned_at IS NULL AND item_id = :itemId LIMIT 1;
+
+selectLoansForItem:
+SELECT * FROM loan WHERE deleted = 0 AND item_id = :itemId ORDER BY loaned_at DESC;
+
+upsertLoan:
+INSERT OR REPLACE INTO loan(id, item_id, person_id, loaned_at, due_at, returned_at, notes, updated_at, deleted)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+markLoanReturned:
+UPDATE loan SET returned_at = :returnedAt, updated_at = :updatedAt WHERE id = :id;
+
+softDeleteLoan:
+UPDATE loan SET deleted = 1, updated_at = :updatedAt WHERE id = :id;
+
+-- ===========================================================================
+-- App settings (API keys, preferences) — key/value, not synced by default
+-- ===========================================================================
+CREATE TABLE app_setting (
+    key   TEXT NOT NULL PRIMARY KEY,
+    value TEXT
+);
+
+selectSetting:
+SELECT value FROM app_setting WHERE key = :key;
+
+selectAllSettings:
+SELECT * FROM app_setting;
+
+upsertSetting:
+INSERT OR REPLACE INTO app_setting(key, value) VALUES (?, ?);
+
+deleteSetting:
+DELETE FROM app_setting WHERE key = :key;
