@@ -13,6 +13,7 @@ import com.reliquary.app.metadata.providers.MusicBrainzProvider
 import com.reliquary.app.metadata.providers.OpenLibraryProvider
 import com.reliquary.app.metadata.providers.TmdbProvider
 import com.reliquary.app.network.createHttpClient
+import com.reliquary.app.sync.SyncService
 
 /**
  * Lightweight manual DI. Each platform builds its own [SqlDriver] (Android needs
@@ -25,6 +26,7 @@ class AppContainer(driver: SqlDriver) {
 
     val httpClient = createHttpClient()
     val apiKeyStore = ApiKeyStore(repository)
+    val syncService = SyncService(repository)
 
     val metadataService: MetadataService = MetadataService(
         listOf(

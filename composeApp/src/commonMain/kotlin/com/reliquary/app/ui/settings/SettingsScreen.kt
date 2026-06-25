@@ -30,9 +30,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.SyncAlt
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.metadata.ApiKeys
 import com.reliquary.app.ui.Navigator
+import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryRed
@@ -59,6 +61,13 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator) {
             color = ReliquaryMuted,
             fontSize = 13.sp,
         )
+
+        PillButton(
+            label = "Sync library to/from a file",
+            icon = Icons.Filled.SyncAlt,
+            background = ReliquarySurface,
+            foreground = MaterialTheme.colorScheme.onBackground,
+        ) { navigator.push(Screen.Sync) }
 
         KeySection(
             title = "TMDB — Movies",

@@ -16,6 +16,7 @@ sealed interface Screen {
     data class LoanItem(val itemId: String) : Screen
     data object Loans : Screen
     data object CustomTabs : Screen
+    data object Sync : Screen
     data object Settings : Screen
 }
 

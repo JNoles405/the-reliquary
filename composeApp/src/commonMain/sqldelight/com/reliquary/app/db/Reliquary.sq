@@ -19,6 +19,9 @@ CREATE TABLE custom_tab (
 selectAllCustomTabs:
 SELECT * FROM custom_tab WHERE deleted = 0 ORDER BY position, name;
 
+selectAllCustomTabsForSync:
+SELECT * FROM custom_tab;
+
 upsertCustomTab:
 INSERT OR REPLACE INTO custom_tab(id, name, icon, position, supports_barcode, updated_at, deleted)
 VALUES (?, ?, ?, ?, ?, ?, ?);
@@ -73,6 +76,10 @@ ORDER BY COALESCE(sort_title, title) COLLATE NOCASE;
 selectItemById:
 SELECT * FROM item WHERE id = :id;
 
+-- Sync reads every row, including soft-deleted ones, so deletions propagate.
+selectAllItems:
+SELECT * FROM item;
+
 selectRecentItems:
 SELECT * FROM item WHERE deleted = 0 ORDER BY added_at DESC LIMIT :limit;
 
@@ -115,6 +122,9 @@ CREATE TABLE person (
 selectAllPeople:
 SELECT * FROM person WHERE deleted = 0 ORDER BY name COLLATE NOCASE;
 
+selectAllPeopleForSync:
+SELECT * FROM person;
+
 selectPersonById:
 SELECT * FROM person WHERE id = :id;
 
@@ -142,6 +152,9 @@ CREATE TABLE loan (
 
 CREATE INDEX loan_item_idx ON loan(item_id);
 CREATE INDEX loan_person_idx ON loan(person_id);
+
+selectAllLoansForSync:
+SELECT * FROM loan;
 
 selectActiveLoans:
 SELECT * FROM loan WHERE deleted = 0 AND returned_at IS NULL ORDER BY due_at;

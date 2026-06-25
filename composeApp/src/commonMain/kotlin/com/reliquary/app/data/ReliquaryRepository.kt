@@ -77,6 +77,13 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
 
     fun deleteItem(id: String) = q.softDeleteItem(updatedAt = nowMillis(), id = id)
 
+    // ---- Sync (all rows including soft-deleted) ----------------------------
+
+    fun allItems(): List<CollectionItem> = q.selectAllItems().executeAsList().map { it.toDomain() }
+    fun allPeople(): List<Person> = q.selectAllPeopleForSync().executeAsList().map { it.toDomain() }
+    fun allLoans(): List<Loan> = q.selectAllLoansForSync().executeAsList().map { it.toDomain() }
+    fun allCustomTabs(): List<CustomTab> = q.selectAllCustomTabsForSync().executeAsList().map { it.toDomain() }
+
     // ---- People ------------------------------------------------------------
 
     fun people(): Flow<List<Person>> =

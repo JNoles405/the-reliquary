@@ -1,10 +1,13 @@
 package com.reliquary.app.domain
 
+import kotlinx.serialization.Serializable
+
 /**
  * A single piece of media in the collection. Mirrors the `item` table but uses
  * idiomatic Kotlin types (Boolean instead of 0/1, camelCase). Mapping lives in
- * the data layer.
+ * the data layer. Serializable so it can travel in a sync bundle.
  */
+@Serializable
 data class CollectionItem(
     val id: String,
     val mediaType: String,
@@ -35,6 +38,7 @@ data class CollectionItem(
     val coverImage: String? get() = coverPath ?: coverUrl
 }
 
+@Serializable
 data class Person(
     val id: String,
     val name: String,
@@ -44,6 +48,7 @@ data class Person(
     val deleted: Boolean = false,
 )
 
+@Serializable
 data class Loan(
     val id: String,
     val itemId: String,
@@ -59,6 +64,7 @@ data class Loan(
     fun isOverdue(now: Long): Boolean = isActive && dueAt != null && dueAt < now
 }
 
+@Serializable
 data class CustomTab(
     val id: String,
     val name: String,

@@ -42,6 +42,7 @@ import com.reliquary.app.ui.loans.LoanScreen
 import com.reliquary.app.ui.loans.LoansScreen
 import com.reliquary.app.ui.settings.CustomTabsScreen
 import com.reliquary.app.ui.settings.SettingsScreen
+import com.reliquary.app.ui.sync.SyncScreen
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryRed
 
@@ -82,6 +83,7 @@ fun ReliquaryApp(container: AppContainer) {
                 is Screen.LoanItem -> LoanScreen(container, screen.itemId, navigator)
                 Screen.Loans -> LoansScreen(container, navigator)
                 Screen.CustomTabs -> CustomTabsScreen(container, navigator)
+                Screen.Sync -> SyncScreen(container, navigator)
                 Screen.Settings -> SettingsScreen(container, navigator)
             }
         }
