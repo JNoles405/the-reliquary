@@ -11,6 +11,11 @@ plugins {
 }
 
 kotlin {
+    compilerOptions {
+        // expect/actual classes (used by the LAN sync transport) are stable enough here.
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)

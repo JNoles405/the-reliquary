@@ -32,7 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
+import com.reliquary.app.sync.LAN_SYNC_PORT
 import com.reliquary.app.sync.defaultSyncFilePath
+import com.reliquary.app.sync.localIpAddresses
 import com.reliquary.app.sync.readTextFile
 import com.reliquary.app.sync.writeTextFile
 import com.reliquary.app.ui.Navigator
@@ -122,11 +124,76 @@ fun SyncScreen(container: AppContainer, navigator: Navigator) {
         }
 
         Spacer(Modifier.height(8.dp))
-        Text(
-            "Direct device-to-device sync over local Wi-Fi is planned as a future " +
-                "addition on top of this file baseline.",
-            color = ReliquaryMuted,
-            fontSize = 12.sp,
-        )
+        LocalNetworkSection(container)
+    }
+}
+
+@Composable
+private fun LocalNetworkSection(container: AppContainer) {
+    val scope = rememberCoroutineScope()
+    val myIps = remember { localIpAddresses() }
+    var hosting by remember { mutableStateOf(container.lanSync.isHosting) }
+    var hostAddress by remember { mutableStateOf("") }
+    var lanStatus by remember { mutableStateOf<String?>(null) }
+    var lanBusy by remember { mutableStateOf(false) }
+
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Local network sync", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(
+                "On the same Wi-Fi, host on one device and connect from the other. They " +
+                    "merge both ways in one tap — no files to move.",
+                color = ReliquaryMuted,
+                fontSize = 12.sp,
+            )
+
+            // Host side
+            PillButton(
+                label = if (hosting) "Stop hosting" else "Host on this device",
+                icon = null,
+                background = if (hosting) MaterialTheme.colorScheme.surfaceVariant else ReliquaryRed,
+                foreground = if (hosting) MaterialTheme.colorScheme.onBackground else Color.White,
+            ) {
+                if (hosting) {
+                    container.lanSync.stopHosting()
+                    hosting = false
+                } else {
+                    runCatching { container.lanSync.startHosting() }
+                    hosting = container.lanSync.isHosting
+                }
+            }
+            if (hosting) {
+                val where = if (myIps.isEmpty()) "this device" else myIps.joinToString(", ")
+                Text("Listening on $where  (port $LAN_SYNC_PORT)", color = ReliquaryRed, fontSize = 13.sp)
+                Text("Enter that address on your other device to sync.", color = ReliquaryMuted, fontSize = 12.sp)
+            }
+
+            // Connect side
+            OutlinedTextField(
+                value = hostAddress,
+                onValueChange = { hostAddress = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Host device IP address") },
+            )
+            PillButton(
+                label = "Connect & sync",
+                icon = null,
+                background = if (hostAddress.isBlank()) MaterialTheme.colorScheme.surfaceVariant else ReliquaryRed,
+                foreground = Color.White,
+            ) {
+                if (lanBusy || hostAddress.isBlank()) return@PillButton
+                lanBusy = true
+                lanStatus = "Connecting…"
+                scope.launch {
+                    lanStatus = runCatching {
+                        val result = container.lanSync.connectAndSync(hostAddress)
+                        "Synced over the network — merged ${result.total} records."
+                    }.getOrElse { "Network sync failed: ${it.message ?: "could not reach host"}" }
+                    lanBusy = false
+                }
+            }
+            lanStatus?.let { Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp) }
+        }
     }
 }

@@ -13,6 +13,7 @@ import com.reliquary.app.metadata.providers.MusicBrainzProvider
 import com.reliquary.app.metadata.providers.OpenLibraryProvider
 import com.reliquary.app.metadata.providers.TmdbProvider
 import com.reliquary.app.network.createHttpClient
+import com.reliquary.app.sync.LanSyncManager
 import com.reliquary.app.sync.SyncService
 
 /**
@@ -27,6 +28,7 @@ class AppContainer(driver: SqlDriver) {
     val httpClient = createHttpClient()
     val apiKeyStore = ApiKeyStore(repository)
     val syncService = SyncService(repository)
+    val lanSync = LanSyncManager(syncService)
 
     val metadataService: MetadataService = MetadataService(
         listOf(
