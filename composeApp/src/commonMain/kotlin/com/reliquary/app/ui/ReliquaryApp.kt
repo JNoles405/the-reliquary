@@ -2,241 +2,142 @@ package com.reliquary.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.reliquary.app.data.ReliquaryRepository
+import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.MediaType
+import com.reliquary.app.ui.detail.DetailScreen
+import com.reliquary.app.ui.edit.EditItemScreen
+import com.reliquary.app.ui.imports.SearchImportScreen
+import com.reliquary.app.ui.library.LibraryScreen
+import com.reliquary.app.ui.loans.LoansScreen
+import com.reliquary.app.ui.settings.SettingsScreen
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryRed
-import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 
-/**
- * Top-level shell of The Reliquary. This is the visual skeleton — a Netflix-style
- * dark layout with a hero banner and horizontally scrolling shelves. Real data,
- * detail screens, scanning and loans are layered on in later increments.
- */
 @Composable
-fun ReliquaryApp(repository: ReliquaryRepository) {
-    var selected by remember { mutableStateOf(MediaType.MOVIES) }
-    val count by remember(selected) { repository.countByType(selected.name) }.collectAsState(0L)
+fun ReliquaryApp(container: AppContainer) {
+    val navigator = rememberNavigator()
+    var selectedTab by remember { mutableStateOf(MediaType.MOVIES) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { TopNav(selected) { selected = it } },
+        topBar = {
+            TopNav(
+                selected = selectedTab,
+                navigator = navigator,
+                onSelect = {
+                    selectedTab = it
+                    navigator.resetTo(Screen.Library)
+                },
+                onSettings = { navigator.push(Screen.Settings) },
+            )
+        },
     ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            HeroBanner(selected, count)
-            Spacer(Modifier.height(24.dp))
-            Shelf(title = "Recently Added")
-            Spacer(Modifier.height(20.dp))
-            Shelf(title = "On Loan")
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when (val screen = navigator.current) {
+                Screen.Library -> LibraryScreen(container, selectedTab, navigator)
+                is Screen.Detail -> DetailScreen(container, screen.itemId, navigator)
+                is Screen.SearchImport ->
+                    SearchImportScreen(container, screen.mediaType, screen.customTabId, navigator)
+                is Screen.EditItem ->
+                    EditItemScreen(container, screen.itemId, screen.mediaType, screen.customTabId, navigator)
+                Screen.Loans -> LoansScreen(container, navigator)
+                Screen.Settings -> SettingsScreen(container, navigator)
+            }
         }
     }
 }
 
 @Composable
-private fun TopNav(selected: MediaType, onSelect: (MediaType) -> Unit) {
+private fun TopNav(
+    selected: MediaType,
+    navigator: Navigator,
+    onSelect: (MediaType) -> Unit,
+    onSettings: () -> Unit,
+) {
     Row(
         Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (navigator.canGoBack) {
+            IconButton(onClick = { navigator.pop() }) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+        }
         Text(
             text = "THE RELIQUARY",
             color = ReliquaryRed,
             fontWeight = FontWeight.ExtraBold,
-            fontSize = 20.sp,
+            fontSize = 19.sp,
+            modifier = Modifier.clickable { navigator.resetTo(Screen.Library) },
         )
-        Spacer(Modifier.width(28.dp))
-        MediaType.entries.forEach { type ->
-            val active = type == selected
+        Spacer(Modifier.width(20.dp))
+        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
+            MediaType.entries.forEach { type ->
+                val active = type == selected && navigator.current == Screen.Library
+                Text(
+                    text = type.displayName,
+                    color = if (active) MaterialTheme.colorScheme.onBackground else ReliquaryMuted,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                    fontSize = 15.sp,
+                    modifier = Modifier
+                        .clickable { onSelect(type) }
+                        .padding(horizontal = 9.dp, vertical = 4.dp),
+                )
+            }
             Text(
-                text = type.displayName,
-                color = if (active) MaterialTheme.colorScheme.onBackground else ReliquaryMuted,
-                fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                text = "Loans",
+                color = if (navigator.current == Screen.Loans) MaterialTheme.colorScheme.onBackground else ReliquaryMuted,
+                fontWeight = if (navigator.current == Screen.Loans) FontWeight.Bold else FontWeight.Normal,
                 fontSize = 15.sp,
                 modifier = Modifier
-                    .clickable { onSelect(type) }
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                    .clickable { navigator.resetTo(Screen.Loans) }
+                    .padding(horizontal = 9.dp, vertical = 4.dp),
             )
         }
-    }
-}
-
-@Composable
-private fun HeroBanner(selected: MediaType, count: Long) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(360.dp),
-    ) {
-        // Placeholder cinematic backdrop until real cover art is wired in.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.linearGradient(
-                        listOf(Color(0xFF3A1C1C), Color(0xFF141414)),
-                    ),
-                ),
-        )
-        // Bottom scrim so text stays legible over artwork.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0.4f to Color.Transparent,
-                        1f to MaterialTheme.colorScheme.background,
-                    ),
-                ),
-        )
-        Column(
-            Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 28.dp, bottom = 28.dp, end = 28.dp),
-        ) {
-            Text(
-                text = selected.displayName,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.Black,
-                fontSize = 48.sp,
+        IconButton(onClick = onSettings) {
+            Icon(
+                Icons.Filled.Settings,
+                contentDescription = "Settings",
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(22.dp),
             )
-            Spacer(Modifier.height(8.dp))
-            val subtitle = if (count > 0) {
-                "$count ${if (count == 1L) "title" else "titles"} in your collection"
-            } else {
-                "Your ${selected.displayName.lowercase()} collection lives here."
-            }
-            Text(
-                text = subtitle,
-                color = ReliquaryMuted,
-                fontSize = 16.sp,
-            )
-            Spacer(Modifier.height(18.dp))
-            Row {
-                HeroButton(
-                    label = "Add Item",
-                    icon = Icons.Filled.Add,
-                    background = MaterialTheme.colorScheme.onBackground,
-                    foreground = Color.Black,
-                )
-                Spacer(Modifier.width(12.dp))
-                if (selected.supportsBarcode) {
-                    HeroButton(
-                        label = "Scan Barcode",
-                        icon = Icons.Filled.QrCodeScanner,
-                        background = Color(0xCC4D4D4D),
-                        foreground = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-            }
         }
-    }
-}
-
-@Composable
-private fun HeroButton(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    background: Color,
-    foreground: Color,
-) {
-    Row(
-        Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(background)
-            .clickable { /* wired up in a later increment */ }
-            .padding(horizontal = 22.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = foreground, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(label, color = foreground, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-    }
-}
-
-@Composable
-private fun Shelf(title: String) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            modifier = Modifier.padding(start = 28.dp, bottom = 12.dp),
-        )
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 28.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(emptyPlaceholders) { _ ->
-                PlaceholderCard()
-            }
-        }
-    }
-}
-
-private val emptyPlaceholders = List(6) { it }
-
-@Composable
-private fun PlaceholderCard() {
-    Box(
-        Modifier
-            .width(130.dp)
-            .height(190.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(ReliquarySurfaceVariant)
-            .clickable { },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            Icons.Filled.Info,
-            contentDescription = null,
-            tint = ReliquaryMuted,
-            modifier = Modifier.size(28.dp),
-        )
     }
 }

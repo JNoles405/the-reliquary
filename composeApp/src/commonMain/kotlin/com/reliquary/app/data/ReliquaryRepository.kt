@@ -3,6 +3,7 @@ package com.reliquary.app.data
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOne
+import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.reliquary.app.db.ReliquaryDatabase
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.CustomTab
@@ -41,6 +42,9 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
 
     fun getItem(id: String): CollectionItem? =
         q.selectItemById(id).executeAsOneOrNull()?.toDomain()
+
+    fun itemFlow(id: String): Flow<CollectionItem?> =
+        q.selectItemById(id).asFlow().mapToOneOrNull(io).map { it?.toDomain() }
 
     fun upsertItem(item: CollectionItem) {
         q.upsertItem(

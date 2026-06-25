@@ -18,7 +18,7 @@ class AppContainer(driver: SqlDriver) {
     val database: ReliquaryDatabase = ReliquaryDatabase(driver)
     val repository: ReliquaryRepository = ReliquaryRepository(database)
 
-    private val httpClient = createHttpClient()
+    val httpClient = createHttpClient()
 
     val metadataService: MetadataService = MetadataService(
         listOf(
