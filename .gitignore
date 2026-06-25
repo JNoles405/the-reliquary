@@ -13,8 +13,9 @@ local.properties
 captures/
 .cxx/
 
-# IntelliJ / Android Studio
-.idea/
+# IntelliJ / Android Studio — ignore everything except shared run configurations
+/.idea/*
+!/.idea/runConfigurations/
 *.iml
 *.ipr
 *.iws

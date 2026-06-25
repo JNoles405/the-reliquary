@@ -105,5 +105,6 @@ A `local.properties` pointing at your Android SDK is required for Android builds
 - [x] Loan management
 - [x] Custom tabs
 - [x] Manual sync: file export/import with last-write-wins merge
-- [ ] LAN sync (planned, on top of the file baseline)
-- [ ] Cover-image caching to local files (sync currently relies on cover URLs)
+- [x] LAN sync (direct device-to-device over local Wi-Fi)
+- [x] Cover-image caching to local files (covers survive offline)
+- [x] App icons (Android adaptive icon, desktop window icon) + shared run configs
