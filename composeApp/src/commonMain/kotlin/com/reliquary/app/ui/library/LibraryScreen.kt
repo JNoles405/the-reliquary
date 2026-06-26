@@ -2,6 +2,7 @@ package com.reliquary.app.ui.library
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,21 +14,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +52,22 @@ import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
+import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
+import com.reliquary.app.ui.theme.ReliquaryTeal
+
+enum class SortOrder(val label: String) {
+    TITLE("Title A–Z"),
+    YEAR_NEW("Year (newest)"),
+    RATING("Rating"),
+    ADDED("Recently added"),
+}
+
+private fun SortOrder.comparator(): Comparator<CollectionItem> = when (this) {
+    SortOrder.TITLE -> compareBy { (it.sortTitle ?: it.title).lowercase() }
+    SortOrder.YEAR_NEW -> compareByDescending { it.releaseYear ?: Long.MIN_VALUE }
+    SortOrder.RATING -> compareByDescending { it.rating ?: -1.0 }
+    SortOrder.ADDED -> compareByDescending { it.addedAt }
+}
 
 @Composable
 fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigator) {
@@ -54,7 +77,26 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
             is ActiveTab.Custom -> container.repository.itemsByCustomTab(active.tab.id)
         }
     }.collectAsState(emptyList())
-    val featured = items.firstOrNull()
+    val activeLoans by remember { container.repository.activeLoans() }.collectAsState(emptyList())
+    val onLoanIds = remember(activeLoans) { activeLoans.map { it.itemId }.toSet() }
+
+    var sort by remember(active) { mutableStateOf(SortOrder.TITLE) }
+    var favoritesOnly by remember(active) { mutableStateOf(false) }
+    var onLoanOnly by remember(active) { mutableStateOf(false) }
+    var genre by remember(active) { mutableStateOf<String?>(null) }
+
+    val genres = remember(items) {
+        items.flatMap { it.genres?.split(",").orEmpty() }
+            .map { it.trim() }.filter { it.isNotBlank() }.distinct().sorted()
+    }
+    val displayed = remember(items, sort, favoritesOnly, onLoanOnly, genre, onLoanIds) {
+        items.filter { item ->
+            (!favoritesOnly || item.favorite) &&
+                (!onLoanOnly || item.id in onLoanIds) &&
+                (genre == null || item.genres?.contains(genre!!, ignoreCase = true) == true)
+        }.sortedWith(sort.comparator())
+    }
+    val featured = displayed.firstOrNull() ?: items.firstOrNull()
     val canImport = active is ActiveTab.Builtin
 
     LazyVerticalGrid(
@@ -68,7 +110,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
             Hero(
                 title = active.title,
                 featured = featured,
-                count = items.size,
+                count = displayed.size,
                 showImport = canImport && active.supportsBarcode,
                 onView = { featured?.let { navigator.push(Screen.Detail(it.id)) } },
                 onAdd = { navigator.push(Screen.EditItem(null, active.mediaTypeName, active.customTabId)) },
@@ -83,17 +125,89 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
             item(span = { GridItemSpan(maxLineSpan) }) { EmptyState(active.title) }
         } else {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    text = "All ${active.title}",
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+                Controls(
+                    sort = sort, onSort = { sort = it },
+                    favoritesOnly = favoritesOnly, onFavorites = { favoritesOnly = !favoritesOnly },
+                    onLoanOnly = onLoanOnly, onLoan = { onLoanOnly = !onLoanOnly },
+                    genres = genres, genre = genre, onGenre = { genre = it },
                 )
             }
-            items(items, key = { it.id }) { item ->
-                ItemCard(item) { navigator.push(Screen.Detail(item.id)) }
+            if (displayed.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        "Nothing matches these filters.",
+                        color = ReliquaryMuted,
+                        modifier = Modifier.padding(vertical = 24.dp),
+                    )
+                }
+            } else {
+                items(displayed, key = { it.id }) { item ->
+                    ItemCard(item) { navigator.push(Screen.Detail(item.id)) }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun Controls(
+    sort: SortOrder,
+    onSort: (SortOrder) -> Unit,
+    favoritesOnly: Boolean,
+    onFavorites: () -> Unit,
+    onLoanOnly: Boolean,
+    onLoan: () -> Unit,
+    genres: List<String>,
+    genre: String?,
+    onGenre: (String?) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MenuChip("Sort: ${sort.label}") { dismiss ->
+            SortOrder.entries.forEach { option ->
+                DropdownMenuItem(text = { Text(option.label) }, onClick = { onSort(option); dismiss() })
+            }
+        }
+        FilterChip("Favorites", favoritesOnly, onFavorites)
+        FilterChip("On loan", onLoanOnly, onLoan)
+        if (genres.isNotEmpty()) {
+            MenuChip(genre?.let { "Genre: $it" } ?: "Genre") { dismiss ->
+                DropdownMenuItem(text = { Text("All genres") }, onClick = { onGenre(null); dismiss() })
+                genres.forEach { g ->
+                    DropdownMenuItem(text = { Text(g) }, onClick = { onGenre(g); dismiss() })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(20.dp))
+            .background(if (selected) ReliquaryTeal else ReliquarySurfaceVariant)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    ) {
+        Text(
+            label,
+            color = if (selected) Color.Black else Color.White,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        )
+    }
+}
+
+@Composable
+private fun MenuChip(label: String, menuContent: @Composable (dismiss: () -> Unit) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(label, selected = false) { expanded = true }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            menuContent { expanded = false }
         }
     }
 }

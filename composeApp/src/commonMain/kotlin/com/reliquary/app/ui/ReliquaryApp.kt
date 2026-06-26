@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +41,7 @@ import com.reliquary.app.ui.imports.SearchImportScreen
 import com.reliquary.app.ui.library.LibraryScreen
 import com.reliquary.app.ui.loans.LoanScreen
 import com.reliquary.app.ui.loans.LoansScreen
+import com.reliquary.app.ui.search.SearchScreen
 import com.reliquary.app.ui.settings.CustomTabsScreen
 import com.reliquary.app.ui.settings.SettingsScreen
 import com.reliquary.app.ui.sync.SyncScreen
@@ -84,6 +86,7 @@ fun ReliquaryApp(container: AppContainer) {
                 Screen.Loans -> LoansScreen(container, navigator)
                 Screen.CustomTabs -> CustomTabsScreen(container, navigator)
                 Screen.Sync -> SyncScreen(container, navigator)
+                Screen.Search -> SearchScreen(container, navigator)
                 Screen.Settings -> SettingsScreen(container, navigator)
             }
         }
@@ -144,6 +147,14 @@ private fun TopNav(
                 )
             }
             TabLabel("Loans", navigator.current == Screen.Loans) { navigator.resetTo(Screen.Loans) }
+        }
+        IconButton(onClick = { navigator.push(Screen.Search) }) {
+            Icon(
+                Icons.Filled.Search,
+                contentDescription = "Search",
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(22.dp),
+            )
         }
         IconButton(onClick = onSettings) {
             Icon(

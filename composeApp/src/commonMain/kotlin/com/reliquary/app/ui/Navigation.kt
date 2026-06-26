@@ -17,6 +17,7 @@ sealed interface Screen {
     data object Loans : Screen
     data object CustomTabs : Screen
     data object Sync : Screen
+    data object Search : Screen
     data object Settings : Screen
 }
 
