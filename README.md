@@ -93,6 +93,39 @@ configuration on a device/emulator, or build an APK:
 A `local.properties` pointing at your Android SDK is required for Android builds
 (created automatically by Android Studio; it is git-ignored).
 
+### Signed release builds
+
+Release signing reads a **git-ignored** `keystore.properties` at the repo root:
+
+```
+storeFile=keystore/reliquary-release.jks
+storePassword=...
+keyAlias=reliquary
+keyPassword=...
+```
+
+Generate a keystore once (keep it and the passwords safe — losing them means you
+can't ship updates under the same identity):
+
+```powershell
+keytool -genkeypair -v -keystore keystore\reliquary-release.jks -alias reliquary `
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Then build (release is signed only when `keystore.properties` is present):
+
+```powershell
+.\gradlew.bat :composeApp:assembleRelease   # signed APK  → composeApp/build/outputs/apk/release/
+.\gradlew.bat :composeApp:bundleRelease      # signed AAB (Play) → composeApp/build/outputs/bundle/release/
+```
+
+Desktop installers are produced with a full JDK 17+ (the JBR lacks `jpackage`):
+
+```powershell
+$env:JAVA_HOME = "C:\path\to\jdk-21"
+.\gradlew.bat :composeApp:packageDistributionForCurrentOS
+```
+
 ## Roadmap
 
 - [x] Project scaffold: KMP + Compose Multiplatform shell on Windows & Android

@@ -36,6 +36,8 @@ import com.reliquary.app.metadata.ApiKeys
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.util.AppInfo
+import com.reliquary.app.util.openUrl
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
@@ -124,6 +126,21 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator) {
             onSave = { values -> values.forEach { (k, v) -> keys.set(k, v) } },
             initialValue = { keys.get(it) },
         )
+
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+            Column {
+                Text("About", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Spacer(Modifier.height(6.dp))
+                Text("The Reliquary v${AppInfo.VERSION}", color = ReliquaryMuted, fontSize = 13.sp)
+                Spacer(Modifier.height(10.dp))
+                PillButton(
+                    label = "View releases on GitHub",
+                    icon = null,
+                    background = ReliquaryTeal,
+                    foreground = Color.Black,
+                ) { openUrl(AppInfo.RELEASES_URL) }
+            }
+        }
     }
 }
 

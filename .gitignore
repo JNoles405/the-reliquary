@@ -34,5 +34,9 @@ Thumbs.db
 # Local secrets (API keys live in the app's settings store, never committed)
 secrets.properties
 
+# Release signing — keep the keystore and its passwords off the repo
+keystore.properties
+keystore/
+
 # Local packaging JDK (downloaded for building the desktop installer)
 .jdk/
