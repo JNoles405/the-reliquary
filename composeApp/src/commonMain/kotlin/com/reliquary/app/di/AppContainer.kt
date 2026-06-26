@@ -8,6 +8,7 @@ import com.reliquary.app.images.CoverCache
 import com.reliquary.app.integrations.LetterboxdImporter
 import com.reliquary.app.integrations.SimklImporter
 import com.reliquary.app.metadata.ApiKeyStore
+import com.reliquary.app.metadata.DiscoverService
 import com.reliquary.app.metadata.MetadataService
 import com.reliquary.app.metadata.UpcLookup
 import com.reliquary.app.metadata.providers.ComicVineProvider
@@ -38,6 +39,7 @@ class AppContainer(driver: SqlDriver) {
     val syncService = SyncService(repository)
     val lanSync = LanSyncManager(syncService)
     val coverCache = CoverCache(httpClient)
+    val discoverService = DiscoverService(httpClient, apiKeyStore)
     val csvService = CsvService(repository)
     val letterboxdImporter = LetterboxdImporter(httpClient, repository)
     val simklImporter = SimklImporter(httpClient, apiKeyStore, repository)

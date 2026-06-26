@@ -38,6 +38,7 @@ import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.ui.detail.DetailScreen
+import com.reliquary.app.ui.discover.DiscoverScreen
 import com.reliquary.app.ui.edit.EditItemScreen
 import com.reliquary.app.ui.imports.SearchImportScreen
 import com.reliquary.app.ui.library.LibraryScreen
@@ -106,6 +107,7 @@ fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {})
                 Screen.Search -> SearchScreen(container, navigator)
                 Screen.Csv -> CsvScreen(container, navigator)
                 Screen.Stats -> StatsScreen(container, navigator)
+                Screen.Discover -> DiscoverScreen(container, navigator)
                 Screen.People -> PeopleScreen(container, navigator)
                 is Screen.Person -> PersonScreen(container, screen.personId, navigator)
                 Screen.Tags -> TagsScreen(container, navigator)
@@ -178,6 +180,7 @@ private fun TopNav(
             TabLabel("Stats", navigator.current == Screen.Stats) { navigator.resetTo(Screen.Stats) }
             TabLabel("Tags", navigator.current == Screen.Tags) { navigator.resetTo(Screen.Tags) }
             TabLabel("Series", navigator.current == Screen.Series) { navigator.resetTo(Screen.Series) }
+            TabLabel("Discover", navigator.current == Screen.Discover) { navigator.resetTo(Screen.Discover) }
         }
         IconButton(onClick = onSurprise) {
             Icon(
