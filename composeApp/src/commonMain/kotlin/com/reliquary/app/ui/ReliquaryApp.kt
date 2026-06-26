@@ -41,6 +41,7 @@ import com.reliquary.app.ui.imports.SearchImportScreen
 import com.reliquary.app.ui.library.LibraryScreen
 import com.reliquary.app.ui.loans.LoanScreen
 import com.reliquary.app.ui.loans.LoansScreen
+import com.reliquary.app.ui.csv.CsvScreen
 import com.reliquary.app.ui.search.SearchScreen
 import com.reliquary.app.ui.settings.CustomTabsScreen
 import com.reliquary.app.ui.settings.SettingsScreen
@@ -87,6 +88,7 @@ fun ReliquaryApp(container: AppContainer) {
                 Screen.CustomTabs -> CustomTabsScreen(container, navigator)
                 Screen.Sync -> SyncScreen(container, navigator)
                 Screen.Search -> SearchScreen(container, navigator)
+                Screen.Csv -> CsvScreen(container, navigator)
                 Screen.Settings -> SettingsScreen(container, navigator)
             }
         }

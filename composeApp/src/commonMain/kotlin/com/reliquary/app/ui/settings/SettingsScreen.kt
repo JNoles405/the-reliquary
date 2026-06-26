@@ -69,6 +69,13 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator) {
             foreground = MaterialTheme.colorScheme.onBackground,
         ) { navigator.push(Screen.Sync) }
 
+        PillButton(
+            label = "Import / export CSV",
+            icon = Icons.Filled.SyncAlt,
+            background = ReliquarySurface,
+            foreground = MaterialTheme.colorScheme.onBackground,
+        ) { navigator.push(Screen.Csv) }
+
         KeySection(
             title = "TMDB — Movies",
             help = "Create a free account at themoviedb.org, then Settings → API → API Key (v3 auth).",

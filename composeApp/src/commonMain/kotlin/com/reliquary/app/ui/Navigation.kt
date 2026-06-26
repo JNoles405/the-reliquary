@@ -18,6 +18,7 @@ sealed interface Screen {
     data object CustomTabs : Screen
     data object Sync : Screen
     data object Search : Screen
+    data object Csv : Screen
     data object Settings : Screen
 }
 

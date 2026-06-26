@@ -1,6 +1,7 @@
 package com.reliquary.app.di
 
 import app.cash.sqldelight.db.SqlDriver
+import com.reliquary.app.csv.CsvService
 import com.reliquary.app.data.ReliquaryRepository
 import com.reliquary.app.db.ReliquaryDatabase
 import com.reliquary.app.images.CoverCache
@@ -33,6 +34,7 @@ class AppContainer(driver: SqlDriver) {
     val syncService = SyncService(repository)
     val lanSync = LanSyncManager(syncService)
     val coverCache = CoverCache(httpClient)
+    val csvService = CsvService(repository)
 
     val metadataService: MetadataService = MetadataService(
         listOf(
