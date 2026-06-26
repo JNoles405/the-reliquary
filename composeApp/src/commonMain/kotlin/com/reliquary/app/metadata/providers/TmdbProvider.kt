@@ -95,7 +95,7 @@ class TmdbProvider(
             title = root.string("title") ?: result.title,
             description = root.string("overview")?.takeIf { it.isNotBlank() } ?: result.description,
             releaseYear = yearFrom(root.string("release_date")) ?: result.releaseYear,
-            coverUrl = root.string("poster_path")?.let { "https://image.tmdb.org/t/p/w500$it" } ?: result.coverUrl,
+            coverUrl = root.string("poster_path")?.let { "https://image.tmdb.org/t/p/w780$it" } ?: result.coverUrl,
             genres = genres ?: result.genres,
             rating = root.double("vote_average")?.takeIf { it > 0 } ?: result.rating,
             extra = extras,
@@ -104,7 +104,7 @@ class TmdbProvider(
 
     private fun JsonObject.toResult(): MetadataResult? {
         val title = string("title") ?: return null
-        val poster = string("poster_path")?.let { "https://image.tmdb.org/t/p/w500$it" }
+        val poster = string("poster_path")?.let { "https://image.tmdb.org/t/p/w780$it" }
         return MetadataResult(
             providerId = id,
             providerName = displayName,

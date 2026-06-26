@@ -79,7 +79,10 @@ class ComicVineProvider(
 
     private fun JsonObject.toResult(): MetadataResult? {
         val name = string("name") ?: return null
-        val image = this["image"]?.obj()?.let { it.string("medium_url") ?: it.string("original_url") }
+        val image = this["image"]?.obj()?.let {
+            it.string("original_url") ?: it.string("super_url")
+                ?: it.string("screen_large_url") ?: it.string("medium_url")
+        }
         val publisher = this["publisher"]?.obj()?.string("name")
         val issueNumber = string("issue_number")
         val displayTitle = if (issueNumber != null) "$name #$issueNumber" else name

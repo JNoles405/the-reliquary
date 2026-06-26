@@ -46,6 +46,7 @@ class GoogleBooksProvider(private val client: HttpClient) : MetadataProvider {
         val thumbnail = this["imageLinks"]?.obj()
             ?.let { it.string("thumbnail") ?: it.string("smallThumbnail") }
             ?.replace("http://", "https://")
+            ?.replace("&edge=curl", "")   // drop the page-curl overlay
         return MetadataResult(
             providerId = id,
             providerName = displayName,

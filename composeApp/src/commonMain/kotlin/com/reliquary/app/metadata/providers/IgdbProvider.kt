@@ -77,7 +77,7 @@ class IgdbProvider(
     private fun JsonObject.toResult(): MetadataResult? {
         val name = string("name") ?: return null
         val imageId = this["cover"]?.obj()?.string("image_id")
-        val cover = imageId?.let { "https://images.igdb.com/igdb/image/upload/t_cover_big/$it.jpg" }
+        val cover = imageId?.let { "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/$it.jpg" }
         val genres = array("genres")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")
         val platforms = array("platforms")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")
         val companies = array("involved_companies")?.mapNotNull { it.obj() }.orEmpty()

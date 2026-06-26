@@ -52,7 +52,7 @@ class MusicBrainzProvider(private val client: HttpClient) : MetadataProvider {
             title = title,
             creators = artists?.joinToString(", "),
             releaseYear = yearFrom(string("date")),
-            coverUrl = mbid?.let { "https://coverartarchive.org/release/$it/front-500" },
+            coverUrl = mbid?.let { "https://coverartarchive.org/release/$it/front-1200" },
             identifierType = string("barcode")?.let { "Barcode" },
             identifier = string("barcode") ?: catalog,
             format = string("packaging"),
