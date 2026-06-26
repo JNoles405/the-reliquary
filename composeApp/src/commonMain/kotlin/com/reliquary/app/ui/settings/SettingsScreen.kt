@@ -133,6 +133,16 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
         )
 
         KeySection(
+            title = "Simkl — TV Shows & Anime",
+            help = "Create an app at simkl.com/settings/developer to get a Client ID. " +
+                "Powers the TV Shows and Anime tabs.",
+            fields = listOf(KeyField("Client ID", ApiKeys.SIMKL)),
+            keysActive = keys.has(ApiKeys.SIMKL),
+            onSave = { values -> values.forEach { (k, v) -> keys.set(k, v) } },
+            initialValue = { keys.get(it) },
+        )
+
+        KeySection(
             title = "ComicVine — Comics",
             help = "Get a free API key at comicvine.gamespot.com/api.",
             fields = listOf(KeyField("API Key", ApiKeys.COMICVINE)),

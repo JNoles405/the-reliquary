@@ -6,6 +6,8 @@ package com.reliquary.app.domain
  */
 enum class MediaType(val displayName: String, val supportsBarcode: Boolean) {
     MOVIES("Movies", supportsBarcode = true),
+    TV("TV Shows", supportsBarcode = true),
+    ANIME("Anime", supportsBarcode = true),
     BOOKS("Books", supportsBarcode = true),
     MUSIC("Music", supportsBarcode = true),
     GAMES("Games", supportsBarcode = true),

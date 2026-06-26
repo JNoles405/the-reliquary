@@ -7,6 +7,8 @@ package com.reliquary.app.domain
 object Status {
     fun optionsFor(mediaTypeName: String): List<String> = when (mediaTypeName) {
         MediaType.MOVIES.name -> listOf("Unwatched", "Watching", "Watched")
+        MediaType.TV.name -> listOf("Plan to watch", "Watching", "Watched")
+        MediaType.ANIME.name -> listOf("Plan to watch", "Watching", "Completed")
         MediaType.BOOKS.name -> listOf("Unread", "Reading", "Read")
         MediaType.MUSIC.name -> listOf("Unlistened", "Listened")
         MediaType.GAMES.name -> listOf("Unplayed", "Playing", "Completed")

@@ -10,6 +10,7 @@ object ApiKeys {
     const val IGDB_CLIENT_SECRET = "igdb.clientSecret"
     const val COMICVINE = "comicvine.apiKey"
     const val DISCOGS = "discogs.token"
+    const val SIMKL = "simkl.clientId"
 }
 
 /** Thin reactive-enough wrapper over the settings table for API keys. */

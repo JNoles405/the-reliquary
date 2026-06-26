@@ -16,7 +16,9 @@ import com.reliquary.app.metadata.providers.IgdbProvider
 import com.reliquary.app.metadata.providers.MusicBrainzProvider
 import com.reliquary.app.metadata.providers.OmdbProvider
 import com.reliquary.app.metadata.providers.OpenLibraryProvider
+import com.reliquary.app.metadata.providers.SimklProvider
 import com.reliquary.app.metadata.providers.TmdbProvider
+import com.reliquary.app.domain.MediaType
 import com.reliquary.app.network.createHttpClient
 import com.reliquary.app.sync.LanSyncManager
 import com.reliquary.app.sync.SyncService
@@ -50,6 +52,8 @@ class AppContainer(driver: SqlDriver) {
             DiscogsProvider(httpClient, apiKeyStore),
             ComicVineProvider(httpClient, apiKeyStore),
             IgdbProvider(httpClient, apiKeyStore),
+            SimklProvider(httpClient, apiKeyStore, MediaType.TV, "tv"),
+            SimklProvider(httpClient, apiKeyStore, MediaType.ANIME, "anime"),
         ),
         upcLookup = UpcLookup(httpClient),
     )
