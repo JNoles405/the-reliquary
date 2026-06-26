@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -41,6 +42,7 @@ import com.reliquary.app.metadata.ApiKeys
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollColumn
 import androidx.compose.material3.Switch
 import com.reliquary.app.util.AppInfo
 import com.reliquary.app.util.WINDOW_MODE_SETTING
@@ -57,8 +59,8 @@ import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange: (String) -> Unit = {}) {
     val keys = container.apiKeyStore
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+    VScrollColumn(
+        contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(

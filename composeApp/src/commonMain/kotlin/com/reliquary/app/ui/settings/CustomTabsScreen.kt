@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,6 +44,7 @@ import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CustomTab
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
 
@@ -54,8 +56,8 @@ fun CustomTabsScreen(container: AppContainer, navigator: Navigator) {
     var newName by remember { mutableStateOf("") }
     var newBarcode by remember { mutableStateOf(false) }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+    VScrollColumn(
+        contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(

@@ -36,7 +36,9 @@ import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.ui.Navigator
+import androidx.compose.foundation.layout.PaddingValues
 import com.reliquary.app.ui.components.CoverImage
+import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import androidx.compose.material3.MaterialTheme
@@ -67,7 +69,7 @@ fun DiscoverScreen(container: AppContainer, navigator: Navigator) {
         added.add(keyOf(r))
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+    VScrollColumn(contentPadding = PaddingValues(20.dp)) {
         Text("Discover", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)
         Text("Trending now — tap to add to your wishlist.", color = ReliquaryMuted, fontSize = 13.sp)
         Spacer(Modifier.height(8.dp))
@@ -79,7 +81,7 @@ fun DiscoverScreen(container: AppContainer, navigator: Navigator) {
                     "Settings to see trending titles here.",
                 color = ReliquaryMuted,
             )
-            return@Column
+            return@VScrollColumn
         }
         if (loading) {
             Spacer(Modifier.height(20.dp))

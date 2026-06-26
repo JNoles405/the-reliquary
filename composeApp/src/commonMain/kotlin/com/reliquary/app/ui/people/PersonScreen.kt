@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -36,6 +37,7 @@ import com.reliquary.app.domain.Loan
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollbar
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
@@ -78,18 +80,22 @@ fun PersonScreen(container: AppContainer, personId: String, navigator: Navigator
         }
 
         Spacer(Modifier.height(20.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (active.isNotEmpty()) {
-                item { SectionHeader("Currently borrowing (${active.size})") }
-                items(active, key = { it.id }) { loan -> LoanRow(container, loan, navigator, active = true) }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            val listState = rememberLazyListState()
+            LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (active.isNotEmpty()) {
+                    item { SectionHeader("Currently borrowing (${active.size})") }
+                    items(active, key = { it.id }) { loan -> LoanRow(container, loan, navigator, active = true) }
+                }
+                if (past.isNotEmpty()) {
+                    item { SectionHeader("History (${past.size})") }
+                    items(past, key = { it.id }) { loan -> LoanRow(container, loan, navigator, active = false) }
+                }
+                if (loans.isEmpty()) {
+                    item { Text("No loans recorded for ${person.name}.", color = ReliquaryMuted) }
+                }
             }
-            if (past.isNotEmpty()) {
-                item { SectionHeader("History (${past.size})") }
-                items(past, key = { it.id }) { loan -> LoanRow(container, loan, navigator, active = false) }
-            }
-            if (loans.isEmpty()) {
-                item { Text("No loans recorded for ${person.name}.", color = ReliquaryMuted) }
-            }
+            VScrollbar(listState)
         }
     }
 }

@@ -41,7 +41,9 @@ import com.reliquary.app.sync.localIpAddresses
 import com.reliquary.app.sync.readTextFile
 import com.reliquary.app.sync.writeTextFile
 import com.reliquary.app.ui.Navigator
+import androidx.compose.foundation.layout.PaddingValues
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
 import kotlinx.coroutines.Dispatchers
@@ -55,8 +57,8 @@ fun SyncScreen(container: AppContainer, navigator: Navigator) {
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+    VScrollColumn(
+        contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text("Sync", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)

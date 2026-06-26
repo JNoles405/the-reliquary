@@ -37,7 +37,9 @@ import com.reliquary.app.sync.defaultSyncFilePath
 import com.reliquary.app.sync.readTextFile
 import com.reliquary.app.sync.writeTextFile
 import com.reliquary.app.ui.Navigator
+import androidx.compose.foundation.layout.PaddingValues
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.util.openUrl
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
@@ -56,8 +58,8 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+    VScrollColumn(
+        contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text("CSV Import / Export", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)

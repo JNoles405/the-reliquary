@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +34,7 @@ import com.reliquary.app.domain.Loan
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollbar
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.util.DAY_MILLIS
@@ -64,7 +67,9 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
             Text(parts.joinToString(" · "), color = if (overdue > 0) MaterialTheme.colorScheme.primary else ReliquaryMuted, fontSize = 13.sp)
         }
         Spacer(Modifier.height(12.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+        val listState = rememberLazyListState()
+        LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(sorted, key = { it.id }) { loan ->
                 val item = container.repository.getItem(loan.itemId)
                 val person = container.repository.getPerson(loan.personId)
@@ -92,6 +97,8 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
                     ) { container.repository.markLoanReturned(loan.id) }
                 }
             }
+        }
+            VScrollbar(listState)
         }
     }
 }

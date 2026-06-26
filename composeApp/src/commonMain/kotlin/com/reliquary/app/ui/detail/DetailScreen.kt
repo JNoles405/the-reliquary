@@ -58,6 +58,7 @@ import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.util.formatDate
 import com.reliquary.app.util.openUrl
 import com.reliquary.app.ui.theme.ReliquaryMuted
@@ -117,7 +118,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
         container.repository.upsertItem(current.copy(extraJson = json, updatedAt = nowMillis()))
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    VScrollColumn {
         Box(Modifier.fillMaxWidth().height(420.dp)) {
             val heroImage = backdrop ?: current.coverImage
             if (heroImage != null) {

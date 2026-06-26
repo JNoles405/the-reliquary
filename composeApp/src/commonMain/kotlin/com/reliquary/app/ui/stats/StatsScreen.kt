@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ import com.reliquary.app.domain.parseMoney
 import com.reliquary.app.metadata.ReliquaryJson
 import kotlin.math.round
 import com.reliquary.app.ui.Navigator
+import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
@@ -67,7 +69,7 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     if (customCount > 0) typeCounts.add("Custom" to customCount)
     val maxTypeCount = (typeCounts.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
 
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp)) {
+    VScrollColumn(contentPadding = PaddingValues(20.dp)) {
         Text("Library Stats", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)
         Spacer(Modifier.height(16.dp))
 

@@ -2,6 +2,7 @@ package com.reliquary.app.ui.edit
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +40,7 @@ import com.reliquary.app.domain.parseTags
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -130,8 +132,8 @@ fun EditItemScreen(
         navigator.pop()
     }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+    VScrollColumn(
+        contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(

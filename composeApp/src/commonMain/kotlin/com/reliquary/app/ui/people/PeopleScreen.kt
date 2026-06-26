@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,6 +39,7 @@ import com.reliquary.app.domain.Person
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollbar
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
 
@@ -77,7 +79,9 @@ fun PeopleScreen(container: AppContainer, navigator: Navigator) {
         if (people.isEmpty()) {
             Text("No people yet. Add someone, or they're created when you loan an item.", color = ReliquaryMuted)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+            val listState = rememberLazyListState()
+            LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(people, key = { it.id }) { person ->
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface)
@@ -89,6 +93,8 @@ fun PeopleScreen(container: AppContainer, navigator: Navigator) {
                         }
                     }
                 }
+            }
+            VScrollbar(listState)
             }
         }
     }

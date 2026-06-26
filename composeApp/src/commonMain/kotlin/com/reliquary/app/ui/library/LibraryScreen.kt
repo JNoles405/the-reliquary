@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -60,6 +61,7 @@ import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.VScrollbar
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 
@@ -137,8 +139,11 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
         coverDp = when (coverDp) { in 0..120 -> 150; in 121..170 -> 190; else -> 110 }
         container.repository.setSetting("ui.coverSize", coverDp.toString())
     }
+    val gridState = rememberLazyGridState()
 
+    Box(Modifier.fillMaxSize()) {
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Adaptive(coverDp.dp),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
@@ -270,6 +275,8 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                 }
             }
         }
+    }
+        VScrollbar(gridState)
     }
 
     if (bulkDialog != null) {

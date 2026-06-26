@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -40,6 +42,7 @@ import com.reliquary.app.domain.MediaType
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
+import com.reliquary.app.ui.components.VScrollbar
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
 import kotlinx.coroutines.flow.flowOf
@@ -67,10 +70,14 @@ fun SearchScreen(container: AppContainer, navigator: Navigator) {
                 Text("Type at least two characters to search across every tab.", color = ReliquaryMuted)
             results.isEmpty() ->
                 Text("No matches for \"$trimmed\".", color = ReliquaryMuted)
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(results, key = { it.id }) { item ->
-                    ResultRow(item) { navigator.push(Screen.Detail(item.id)) }
+            else -> Box(Modifier.weight(1f).fillMaxWidth()) {
+                val listState = rememberLazyListState()
+                LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(results, key = { it.id }) { item ->
+                        ResultRow(item) { navigator.push(Screen.Detail(item.id)) }
+                    }
                 }
+                VScrollbar(listState)
             }
         }
     }
