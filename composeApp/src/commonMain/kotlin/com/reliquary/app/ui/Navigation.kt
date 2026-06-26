@@ -19,6 +19,7 @@ sealed interface Screen {
     data object Sync : Screen
     data object Search : Screen
     data object Csv : Screen
+    data object Stats : Screen
     data object Settings : Screen
 }
 

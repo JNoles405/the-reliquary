@@ -46,6 +46,7 @@ import com.reliquary.app.ui.csv.CsvScreen
 import com.reliquary.app.ui.search.SearchScreen
 import com.reliquary.app.ui.settings.CustomTabsScreen
 import com.reliquary.app.ui.settings.SettingsScreen
+import com.reliquary.app.ui.stats.StatsScreen
 import com.reliquary.app.ui.sync.SyncScreen
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryTeal
@@ -93,6 +94,7 @@ fun ReliquaryApp(container: AppContainer) {
                 Screen.Sync -> SyncScreen(container, navigator)
                 Screen.Search -> SearchScreen(container, navigator)
                 Screen.Csv -> CsvScreen(container, navigator)
+                Screen.Stats -> StatsScreen(container, navigator)
                 Screen.Settings -> SettingsScreen(container, navigator)
             }
         }
@@ -155,6 +157,7 @@ private fun TopNav(
             }
             val loansLabel = if (overdueCount > 0) "Loans ($overdueCount)" else "Loans"
             TabLabel(loansLabel, navigator.current == Screen.Loans) { navigator.resetTo(Screen.Loans) }
+            TabLabel("Stats", navigator.current == Screen.Stats) { navigator.resetTo(Screen.Stats) }
         }
         IconButton(onClick = { navigator.push(Screen.Search) }) {
             Icon(
