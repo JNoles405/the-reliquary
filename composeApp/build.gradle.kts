@@ -107,12 +107,14 @@ compose.desktop {
             // The SQLite JDBC driver needs java.sql; jlink would otherwise strip it
             // from the bundled runtime, crashing at startup with java/sql/DriverManager.
             modules("java.sql")
-            packageName = "TheReliquary"
+            packageName = "The Reliquary"
             packageVersion = "1.0.0"
             description = "The Reliquary — personal media collection manager"
             vendor = "JNoles405"
 
             windows {
+                // Installed-program icon: the teal gem shown in the app's title bar.
+                iconFile.set(project.file("icons/reliquary.ico"))
                 // Make the install visible and admin-free.
                 menuGroup = "The Reliquary"
                 menu = true          // Start-menu shortcut
