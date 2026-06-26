@@ -41,8 +41,10 @@ import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.EDITION_FIELDS
+import com.reliquary.app.domain.TAGS_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
 import com.reliquary.app.domain.WANTED_KEY
+import com.reliquary.app.domain.parseTags
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
@@ -212,6 +214,21 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 }
                 StatusChip(if (isWanted) "On wishlist ✓" else "Wishlist", selected = isWanted) {
                     setWanted(!isWanted)
+                }
+            }
+
+            val tags = parseTags(allExtras.firstOrNull { it.first == TAGS_KEY }?.second)
+            if (tags.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Text("Tags", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    tags.forEach { tag ->
+                        StatusChip(tag, selected = false) { navigator.push(Screen.TagItems(tag)) }
+                    }
                 }
             }
 
