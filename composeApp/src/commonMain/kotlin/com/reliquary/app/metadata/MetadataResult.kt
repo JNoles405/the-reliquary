@@ -24,6 +24,7 @@ data class MetadataResult(
     val identifier: String? = null,
     val genres: String? = null,
     val format: String? = null,
+    val rating: Double? = null,
     val extra: Map<String, String> = emptyMap(),
 ) {
     fun toCollectionItem(barcode: String? = null, customTabId: String? = null): CollectionItem {
@@ -43,6 +44,7 @@ data class MetadataResult(
             identifier = identifier,
             genres = genres,
             format = format,
+            rating = rating,
             extraJson = if (extra.isEmpty()) null else ReliquaryJson.encodeToString(extra),
             addedAt = now,
             updatedAt = now,

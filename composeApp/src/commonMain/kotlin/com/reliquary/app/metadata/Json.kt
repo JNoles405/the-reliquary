@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.longOrNull
 
 /** Lenient JSON used to defensively parse third-party metadata responses. */
@@ -23,6 +24,8 @@ fun JsonElement?.obj(): JsonObject? = this as? JsonObject
 fun JsonObject.string(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
 
 fun JsonObject.long(key: String): Long? = (this[key] as? JsonPrimitive)?.longOrNull
+
+fun JsonObject.double(key: String): Double? = (this[key] as? JsonPrimitive)?.doubleOrNull
 
 fun JsonObject.array(key: String): JsonArray? = this[key] as? JsonArray
 

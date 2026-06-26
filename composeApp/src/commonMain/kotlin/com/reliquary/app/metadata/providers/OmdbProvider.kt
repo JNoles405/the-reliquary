@@ -49,6 +49,35 @@ class OmdbProvider(
     // OMDb indexes titles/IMDb ids, not retail barcodes.
     override suspend fun lookupByBarcode(barcode: String): List<MetadataResult> = emptyList()
 
+    override suspend fun details(result: MetadataResult): MetadataResult? {
+        val key = keys.get(ApiKeys.OMDB) ?: return null
+        val id = result.identifier ?: return null
+        val url = "https://www.omdbapi.com/?apikey=$key&plot=full&i=$id"
+        val o = ReliquaryJson.parseToJsonElement(client.get(url).bodyAsText()).obj() ?: return null
+        if (o.string("Response") == "False") return null
+        fun field(name: String) = o.string(name)?.takeIf { it.isNotBlank() && it != "N/A" }
+        val extras = buildMap {
+            field("Director")?.let { put("Director", it) }
+            field("Writer")?.let { put("Writer", it) }
+            field("Production")?.let { put("Studio", it) }
+            field("Runtime")?.let { put("Runtime", it) }
+            field("Rated")?.let { put("Rated", it) }
+            field("Country")?.let { put("Country", it) }
+            field("Language")?.let { put("Language", it) }
+            field("Awards")?.let { put("Awards", it) }
+            field("Actors")?.let { put("Cast", it) }
+        }
+        return result.copy(
+            title = field("Title") ?: result.title,
+            description = field("Plot") ?: result.description,
+            releaseYear = yearFrom(field("Year")) ?: result.releaseYear,
+            coverUrl = field("Poster") ?: result.coverUrl,
+            genres = field("Genre") ?: result.genres,
+            rating = field("imdbRating")?.toDoubleOrNull() ?: result.rating,
+            extra = extras,
+        )
+    }
+
     private suspend fun enrich(hit: JsonObject, key: String): MetadataResult? {
         val imdbId = hit.string("imdbID")
         val full = imdbId?.let {

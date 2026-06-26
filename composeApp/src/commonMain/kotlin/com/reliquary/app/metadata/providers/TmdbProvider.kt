@@ -7,6 +7,8 @@ import com.reliquary.app.metadata.MetadataProvider
 import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.metadata.array
+import com.reliquary.app.metadata.double
+import com.reliquary.app.metadata.long
 import com.reliquary.app.metadata.obj
 import com.reliquary.app.metadata.string
 import com.reliquary.app.metadata.yearFrom
@@ -41,6 +43,64 @@ class TmdbProvider(
 
     // TMDB does not index retail barcodes (UPC/EAN), so there is nothing to look up.
     override suspend fun lookupByBarcode(barcode: String): List<MetadataResult> = emptyList()
+
+    override suspend fun details(result: MetadataResult): MetadataResult? {
+        val key = keys.get(ApiKeys.TMDB) ?: return null
+        val id = result.identifier ?: return null
+        val url = "https://api.themoviedb.org/3/movie/$id" +
+            "?api_key=$key&append_to_response=credits,release_dates"
+        val root = ReliquaryJson.parseToJsonElement(client.get(url).bodyAsText()).obj() ?: return null
+
+        val credits = root["credits"].obj()
+        val crew = credits?.array("crew")?.mapNotNull { it.obj() }.orEmpty()
+        fun job(vararg names: String): String? = crew
+            .filter { it.string("job") in names }
+            .mapNotNull { it.string("name") }
+            .distinct().joinToString(", ").takeIf { it.isNotBlank() }
+        val cast = credits?.array("cast")?.mapNotNull { it.obj() }?.take(12)?.joinToString(", ") { c ->
+            val name = c.string("name").orEmpty()
+            val role = c.string("character")
+            if (!role.isNullOrBlank()) "$name ($role)" else name
+        }?.takeIf { it.isNotBlank() }
+
+        val certification = root["release_dates"].obj()?.array("results")
+            ?.mapNotNull { it.obj() }
+            ?.firstOrNull { it.string("iso_3166_1") == "US" }
+            ?.array("release_dates")?.mapNotNull { it.obj()?.string("certification") }
+            ?.firstOrNull { it.isNotBlank() }
+
+        val studio = root.array("production_companies")?.mapNotNull { it.obj()?.string("name") }?.firstOrNull()
+        val country = root.array("production_countries")?.mapNotNull { it.obj()?.string("name") }?.firstOrNull()
+        val language = root.array("spoken_languages")
+            ?.mapNotNull { it.obj()?.let { o -> o.string("english_name") ?: o.string("name") } }?.firstOrNull()
+        val runtime = root.long("runtime")?.takeIf { it > 0 }
+        val genres = root.array("genres")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")
+
+        val extras = buildMap {
+            job("Director")?.let { put("Director", it) }
+            job("Screenplay", "Writer", "Story")?.let { put("Writer", it) }
+            job("Producer")?.let { put("Producer", it) }
+            job("Director of Photography")?.let { put("Cinematography", it) }
+            job("Original Music Composer", "Music")?.let { put("Music", it) }
+            studio?.let { put("Studio", it) }
+            runtime?.let { put("Runtime", "$it min") }
+            certification?.let { put("Rated", it) }
+            country?.let { put("Country", it) }
+            language?.let { put("Language", it) }
+            root.string("tagline")?.takeIf { it.isNotBlank() }?.let { put("Tagline", it) }
+            cast?.let { put("Cast", it) }
+        }
+
+        return result.copy(
+            title = root.string("title") ?: result.title,
+            description = root.string("overview")?.takeIf { it.isNotBlank() } ?: result.description,
+            releaseYear = yearFrom(root.string("release_date")) ?: result.releaseYear,
+            coverUrl = root.string("poster_path")?.let { "https://image.tmdb.org/t/p/w500$it" } ?: result.coverUrl,
+            genres = genres ?: result.genres,
+            rating = root.double("vote_average")?.takeIf { it > 0 } ?: result.rating,
+            extra = extras,
+        )
+    }
 
     private fun JsonObject.toResult(): MetadataResult? {
         val title = string("title") ?: return null

@@ -87,16 +87,23 @@ fun SearchImportScreen(
     }
 
     fun import(result: MetadataResult) {
+        if (loading) return
         // Prefer the actual scanned/entered barcode; otherwise use the result's own
         // identifier only when it's a real barcode type (not a provider id).
         val barcodeTypes = setOf("UPC", "EAN", "ISBN", "Barcode")
-        val item = result.toCollectionItem(
-            barcode = lastBarcode ?: result.identifier?.takeIf { result.identifierType in barcodeTypes },
-            customTabId = customTabId,
-        )
-        container.repository.upsertItem(item)
-        navigator.pop()
-        navigator.push(Screen.Detail(item.id))
+        val barcode = lastBarcode ?: result.identifier?.takeIf { result.identifierType in barcodeTypes }
+        loading = true
+        message = "Fetching details…"
+        scope.launch {
+            // Pull the full record (cast, crew, runtime, etc.) before saving.
+            val full = container.metadataService.detailsFor(result)
+            val item = full.toCollectionItem(barcode = barcode, customTabId = customTabId)
+            container.repository.upsertItem(item)
+            loading = false
+            message = null
+            navigator.pop()
+            navigator.push(Screen.Detail(item.id))
+        }
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {

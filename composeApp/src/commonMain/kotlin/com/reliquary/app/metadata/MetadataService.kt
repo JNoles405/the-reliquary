@@ -20,6 +20,12 @@ class MetadataService(
 
     fun hasProviderFor(type: MediaType): Boolean = providersFor(type).isNotEmpty()
 
+    /** Fetch the full record for a chosen result, falling back to the result itself. */
+    suspend fun detailsFor(result: MetadataResult): MetadataResult {
+        val provider = providers.firstOrNull { it.id == result.providerId && it.isEnabled }
+        return runCatching { provider?.details(result) }.getOrNull() ?: result
+    }
+
     suspend fun search(type: MediaType, query: String): List<MetadataResult> =
         dedupe(
             providersFor(type).flatMap { provider ->

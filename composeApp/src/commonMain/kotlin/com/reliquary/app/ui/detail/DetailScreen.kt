@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
+import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
@@ -43,6 +44,8 @@ import com.reliquary.app.util.formatDate
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
+import kotlin.math.round
+import kotlinx.serialization.decodeFromString
 
 @Composable
 fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) {
@@ -63,6 +66,13 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
     // Cache the remote cover to local storage the first time this item is viewed.
     LaunchedEffect(current.id) {
         container.coverCache.ensureCached(current, container.repository)
+    }
+
+    // Provider-supplied extras (cast, crew, runtime, studio, …), in insertion order.
+    val extras = remember(current.extraJson) {
+        current.extraJson
+            ?.let { json -> runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(json) }.getOrNull() }
+            ?.toList().orEmpty()
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -137,6 +147,21 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 }
             }
 
+            current.rating?.let { r ->
+                Spacer(Modifier.height(16.dp))
+                Box(
+                    Modifier.clip(RoundedCornerShape(4.dp)).background(ReliquaryTeal)
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                ) {
+                    Text(
+                        "★ ${round(r * 10) / 10.0} / 10",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                    )
+                }
+            }
+
             if (activeLoan != null) {
                 Spacer(Modifier.height(16.dp))
                 val due = activeLoan.dueAt?.let { " · due ${formatDate(it)}" } ?: ""
@@ -155,6 +180,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
 
             Spacer(Modifier.height(20.dp))
             MetaRow("Genres", current.genres)
+            extras.forEach { (label, value) -> MetaRow(label, value) }
             MetaRow("Format", current.format)
             MetaRow("Location", current.location)
             MetaRow(current.identifierType ?: "Identifier", current.identifier)
