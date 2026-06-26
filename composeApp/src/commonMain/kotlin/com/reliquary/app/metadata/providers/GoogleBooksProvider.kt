@@ -60,8 +60,11 @@ class GoogleBooksProvider(private val client: HttpClient) : MetadataProvider {
             identifier = isbn,
             genres = array("categories")?.strings()?.joinToString(", "),
             extra = buildMap {
+                array("authors")?.strings()?.joinToString(", ")?.let { put("Authors", it) }
                 string("publisher")?.let { put("Publisher", it) }
-                long("pageCount")?.let { put("Pages", it.toString()) }
+                string("publishedDate")?.let { put("Published", it) }
+                long("pageCount")?.takeIf { it > 0 }?.let { put("Pages", it.toString()) }
+                string("language")?.let { put("Language", it.uppercase()) }
             },
         )
     }

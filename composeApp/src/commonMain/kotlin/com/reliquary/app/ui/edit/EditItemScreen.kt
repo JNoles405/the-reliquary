@@ -30,11 +30,15 @@ import com.reliquary.app.data.newId
 import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
+import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.MediaType
+import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryTeal
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 
 @Composable
 fun EditItemScreen(
@@ -61,9 +65,26 @@ fun EditItemScreen(
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
     var favorite by remember { mutableStateOf(existing?.favorite ?: false) }
 
+    // Existing extras (provider cast/crew + any edition fields), preserved on save.
+    val existingExtras = remember(itemId) {
+        existing?.extraJson
+            ?.let { json -> runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(json) }.getOrNull() }
+            .orEmpty()
+    }
+    val editionStates = remember(itemId) {
+        EDITION_FIELDS.associateWith { mutableStateOf(existingExtras[it] ?: "") }
+    }
+
     fun save() {
         if (title.isBlank()) return
         val now = nowMillis()
+        // Merge edited edition fields into existing extras without losing provider data.
+        val extras = existingExtras.toMutableMap()
+        EDITION_FIELDS.forEach { key ->
+            val value = editionStates.getValue(key).value.trim()
+            if (value.isBlank()) extras.remove(key) else extras[key] = value
+        }
+        val mergedExtraJson = if (extras.isEmpty()) null else ReliquaryJson.encodeToString(extras)
         val item = CollectionItem(
             id = existing?.id ?: newId(),
             mediaType = existing?.mediaType ?: mediaTypeName,
@@ -80,8 +101,9 @@ fun EditItemScreen(
             identifier = identifier.orNull(),
             genres = genres.orNull(),
             format = format.orNull(),
+            rating = existing?.rating,
             location = location.orNull(),
-            extraJson = existing?.extraJson,
+            extraJson = mergedExtraJson,
             notes = notes.orNull(),
             favorite = favorite,
             addedAt = existing?.addedAt ?: now,
@@ -112,6 +134,17 @@ fun EditItemScreen(
         Field("Cover image URL", coverUrl) { coverUrl = it }
         Field("Description", description, singleLine = false) { description = it }
         Field("Notes", notes, singleLine = false) { notes = it }
+
+        Text(
+            "Edition details",
+            color = ReliquaryMuted,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        EDITION_FIELDS.forEach { key ->
+            val state = editionStates.getValue(key)
+            Field(key, state.value) { state.value = it }
+        }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Switch(checked = favorite, onCheckedChange = { favorite = it })

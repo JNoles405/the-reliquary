@@ -26,6 +26,8 @@ data class MetadataResult(
     val format: String? = null,
     val rating: Double? = null,
     val extra: Map<String, String> = emptyMap(),
+    /** Provider detail endpoint, used only during enrichment; never persisted. */
+    val detailUrl: String? = null,
 ) {
     fun toCollectionItem(barcode: String? = null, customTabId: String? = null): CollectionItem {
         val now = nowMillis()

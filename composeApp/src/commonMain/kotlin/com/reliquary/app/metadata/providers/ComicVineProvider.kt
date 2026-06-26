@@ -43,6 +43,40 @@ class ComicVineProvider(
 
     override suspend fun lookupByBarcode(barcode: String): List<MetadataResult> = emptyList()
 
+    override suspend fun details(result: MetadataResult): MetadataResult? {
+        val key = keys.get(ApiKeys.COMICVINE) ?: return null
+        val detailUrl = result.detailUrl ?: return null
+        val url = "$detailUrl?api_key=$key&format=json" +
+            "&field_list=deck,description,person_credits,publisher,cover_date,store_date"
+        val body = client.get(url) { header(HttpHeaders.UserAgent, USER_AGENT) }.bodyAsText()
+        val o = ReliquaryJson.parseToJsonElement(body).obj()?.get("results").obj() ?: return null
+        val credits = o.array("person_credits")?.mapNotNull { it.obj() }.orEmpty()
+        fun role(vararg roles: String) = credits
+            .filter { c -> val r = c.string("role")?.lowercase().orEmpty(); roles.any { r.contains(it) } }
+            .mapNotNull { it.string("name") }
+            .distinct().joinToString(", ").takeIf { it.isNotBlank() }
+        val publisher = o["publisher"].obj()?.string("name") ?: result.creators
+        val plain = (o.string("deck") ?: o.string("description")?.let { stripHtml(it) })
+            ?.takeIf { it.isNotBlank() }
+        val extras = buildMap {
+            role("writer")?.let { put("Writer", it) }
+            role("artist", "penciler", "inker", "cover")?.let { put("Artist", it) }
+            publisher?.let { put("Publisher", it) }
+            o.string("cover_date")?.let { put("Cover date", it) }
+        }
+        return result.copy(
+            description = plain ?: result.description,
+            creators = publisher ?: result.creators,
+            extra = result.extra + extras,
+        )
+    }
+
+    private fun stripHtml(s: String): String = s
+        .replace(Regex("<[^>]+>"), " ")
+        .replace(Regex("&[a-zA-Z#0-9]+;"), " ")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+
     private fun JsonObject.toResult(): MetadataResult? {
         val name = string("name") ?: return null
         val image = this["image"]?.obj()?.let { it.string("medium_url") ?: it.string("original_url") }
@@ -60,6 +94,7 @@ class ComicVineProvider(
             coverUrl = image,
             identifierType = "ComicVine",
             identifier = string("id"),
+            detailUrl = string("api_detail_url"),
         )
     }
 

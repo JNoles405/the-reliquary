@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
+import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
@@ -68,12 +69,15 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
         container.coverCache.ensureCached(current, container.repository)
     }
 
-    // Provider-supplied extras (cast, crew, runtime, studio, …), in insertion order.
-    val extras = remember(current.extraJson) {
+    // Extras split into provider info (cast, crew, runtime, …) and editable edition details.
+    val allExtras = remember(current.extraJson) {
         current.extraJson
             ?.let { json -> runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(json) }.getOrNull() }
             ?.toList().orEmpty()
     }
+    val editionKeys = remember { EDITION_FIELDS.toSet() }
+    val providerExtras = allExtras.filter { it.first !in editionKeys }
+    val editionExtras = allExtras.filter { it.first in editionKeys }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(420.dp)) {
@@ -180,11 +184,24 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
 
             Spacer(Modifier.height(20.dp))
             MetaRow("Genres", current.genres)
-            extras.forEach { (label, value) -> MetaRow(label, value) }
+            providerExtras.forEach { (label, value) -> MetaRow(label, value) }
             MetaRow("Format", current.format)
             MetaRow("Location", current.location)
             MetaRow(current.identifierType ?: "Identifier", current.identifier)
             MetaRow("Barcode", current.barcode)
+
+            if (editionExtras.isNotEmpty()) {
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    "Edition Details",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                )
+                Spacer(Modifier.height(6.dp))
+                editionExtras.forEach { (label, value) -> MetaRow(label, value) }
+            }
+
             current.notes?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(16.dp))
                 Text("Notes", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)

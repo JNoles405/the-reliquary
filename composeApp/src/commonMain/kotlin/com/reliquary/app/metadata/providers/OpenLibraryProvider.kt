@@ -57,6 +57,29 @@ class OpenLibraryProvider(private val client: HttpClient) : MetadataProvider {
         )
     }
 
+    override suspend fun details(result: MetadataResult): MetadataResult? {
+        val isbn = result.identifier?.filter { it.isDigit() || it == 'X' || it == 'x' }
+        if (isbn.isNullOrBlank()) return null
+        val url = "https://openlibrary.org/api/books?bibkeys=ISBN:$isbn&jscmd=data&format=json"
+        val root = ReliquaryJson.parseToJsonElement(client.get(url).bodyAsText()).obj() ?: return null
+        val entry = (root["ISBN:$isbn"] ?: root.values.firstOrNull())?.obj() ?: return null
+        val extras = buildMap {
+            entry.array("authors")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")
+                ?.let { put("Authors", it) }
+            entry.array("publishers")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")
+                ?.let { put("Publisher", it) }
+            entry.string("publish_date")?.let { put("Published", it) }
+            entry.long("number_of_pages")?.takeIf { it > 0 }?.let { put("Pages", it.toString()) }
+            entry.array("subjects")?.mapNotNull { it.obj()?.string("name") }?.take(6)?.joinToString(", ")
+                ?.let { put("Subjects", it) }
+        }
+        val cover = entry["cover"]?.obj()?.let { it.string("large") ?: it.string("medium") }
+        return result.copy(
+            coverUrl = cover ?: result.coverUrl,
+            extra = result.extra + extras,
+        )
+    }
+
     private fun JsonObject.toSearchResult(): MetadataResult? {
         val title = string("title") ?: return null
         val coverId = long("cover_i")

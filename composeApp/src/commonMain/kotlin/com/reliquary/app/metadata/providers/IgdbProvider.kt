@@ -8,6 +8,7 @@ import com.reliquary.app.metadata.MetadataProvider
 import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.metadata.array
+import com.reliquary.app.metadata.double
 import com.reliquary.app.metadata.long
 import com.reliquary.app.metadata.obj
 import com.reliquary.app.metadata.string
@@ -57,8 +58,10 @@ class IgdbProvider(
         val bearer = ensureToken() ?: return emptyList()
         val clientId = keys.get(ApiKeys.IGDB_CLIENT_ID) ?: return emptyList()
         val safe = query.replace("\"", "")
-        val apicalypse = "search \"$safe\"; " +
-            "fields name,summary,first_release_date,cover.image_id,genres.name,platforms.name; limit 20;"
+        val apicalypse = "search \"$safe\"; fields name,summary,first_release_date," +
+            "cover.image_id,genres.name,platforms.name,game_modes.name,total_rating," +
+            "involved_companies.company.name,involved_companies.developer,involved_companies.publisher; " +
+            "limit 20;"
         val body = client.post("https://api.igdb.com/v4/games") {
             header("Client-ID", clientId)
             header(HttpHeaders.Authorization, "Bearer $bearer")
@@ -77,6 +80,13 @@ class IgdbProvider(
         val cover = imageId?.let { "https://images.igdb.com/igdb/image/upload/t_cover_big/$it.jpg" }
         val genres = array("genres")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")
         val platforms = array("platforms")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")
+        val companies = array("involved_companies")?.mapNotNull { it.obj() }.orEmpty()
+        fun company(role: String) = companies
+            .filter { it.string(role) == "true" }
+            .mapNotNull { it["company"].obj()?.string("name") }
+            .distinct().joinToString(", ").takeIf { it.isNotBlank() }
+        val modes = array("game_modes")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")
+        val rating = double("total_rating")?.takeIf { it > 0 }?.let { it / 10.0 }
         return MetadataResult(
             providerId = id,
             providerName = displayName,
@@ -87,8 +97,15 @@ class IgdbProvider(
             coverUrl = cover,
             genres = genres,
             format = platforms,
+            rating = rating,
             identifierType = "IGDB",
             identifier = string("id"),
+            extra = buildMap {
+                company("developer")?.let { put("Developer", it) }
+                company("publisher")?.let { put("Publisher", it) }
+                platforms?.let { put("Platforms", it) }
+                modes?.let { put("Modes", it) }
+            },
         )
     }
 }
