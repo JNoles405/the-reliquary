@@ -35,9 +35,9 @@ fun main() {
             resizable = true,
         ) {
             Column(Modifier.fillMaxSize()) {
-                if (state.placement != WindowPlacement.Fullscreen) {
-                    ReliquaryTitleBar(state, onClose = ::exitApplication)
-                }
+                // Always show the custom title bar so the window controls (incl. close)
+                // are available even in fullscreen.
+                ReliquaryTitleBar(state, onClose = ::exitApplication)
                 App(container)
             }
         }

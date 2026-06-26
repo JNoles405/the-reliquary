@@ -1,8 +1,10 @@
 package com.reliquary.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -160,6 +162,7 @@ private fun TopNav(
             modifier = Modifier.clickable { navigator.resetTo(Screen.Library) },
         )
         Spacer(Modifier.width(20.dp))
+        // Library categories (built-in media types + custom tabs) scroll here.
         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
             MediaType.entries.forEach { type ->
                 val selected = onLibrary && active is ActiveTab.Builtin && active.type == type
@@ -177,13 +180,24 @@ private fun TopNav(
                     modifier = Modifier.size(18.dp),
                 )
             }
-            val loansLabel = if (overdueCount > 0) "Loans ($overdueCount)" else "Loans"
-            TabLabel(loansLabel, navigator.current == Screen.Loans) { navigator.resetTo(Screen.Loans) }
-            TabLabel("Stats", navigator.current == Screen.Stats) { navigator.resetTo(Screen.Stats) }
+        }
+        Spacer(Modifier.width(8.dp))
+        // Tools / views — grouped in a bordered cluster, distinct from the library tabs.
+        val loansLabel = if (overdueCount > 0) "Loans ($overdueCount)" else "Loans"
+        Row(
+            Modifier
+                .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp))
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TabLabel("Discover", navigator.current == Screen.Discover) { navigator.resetTo(Screen.Discover) }
             TabLabel("Tags", navigator.current == Screen.Tags) { navigator.resetTo(Screen.Tags) }
             TabLabel("Series", navigator.current == Screen.Series) { navigator.resetTo(Screen.Series) }
-            TabLabel("Discover", navigator.current == Screen.Discover) { navigator.resetTo(Screen.Discover) }
+            TabLabel(loansLabel, navigator.current == Screen.Loans) { navigator.resetTo(Screen.Loans) }
+            TabLabel("Stats", navigator.current == Screen.Stats) { navigator.resetTo(Screen.Stats) }
         }
+        Spacer(Modifier.width(8.dp))
         IconButton(onClick = onSurprise) {
             Icon(
                 Icons.Filled.Shuffle,

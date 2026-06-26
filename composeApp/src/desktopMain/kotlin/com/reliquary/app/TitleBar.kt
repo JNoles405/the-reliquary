@@ -70,10 +70,11 @@ fun FrameWindowScope.ReliquaryTitleBar(state: WindowState, onClose: () -> Unit) 
         Spacer(Modifier.weight(1f))
         CaptionButton(Icons.Filled.Remove) { state.isMinimized = true }
         CaptionButton(Icons.Filled.CropSquare) {
-            state.placement = if (state.placement == WindowPlacement.Maximized) {
-                WindowPlacement.Floating
-            } else {
+            // Floating -> Maximized; Maximized/Fullscreen -> Floating (also exits fullscreen).
+            state.placement = if (state.placement == WindowPlacement.Floating) {
                 WindowPlacement.Maximized
+            } else {
+                WindowPlacement.Floating
             }
         }
         CaptionButton(Icons.Filled.Close, hoverClose = true, onClick = onClose)
