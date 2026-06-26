@@ -41,8 +41,12 @@ import com.reliquary.app.metadata.ApiKeys
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
+import androidx.compose.material3.Switch
 import com.reliquary.app.util.AppInfo
+import com.reliquary.app.util.WINDOW_MODE_SETTING
+import com.reliquary.app.util.isDesktopPlatform
 import com.reliquary.app.util.openUrl
+import com.reliquary.app.util.setFullscreen
 import com.reliquary.app.ui.theme.ACCENTS
 import com.reliquary.app.ui.theme.toRgbHex
 import com.reliquary.app.ui.theme.ReliquaryMuted
@@ -70,6 +74,34 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             color = ReliquaryMuted,
             fontSize = 13.sp,
         )
+
+        if (isDesktopPlatform()) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+                Column {
+                    var fullscreen by remember {
+                        mutableStateOf(container.repository.getSetting(WINDOW_MODE_SETTING) != "windowed")
+                    }
+                    Text("Window", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Switch(
+                            checked = fullscreen,
+                            onCheckedChange = {
+                                fullscreen = it
+                                container.repository.setSetting(WINDOW_MODE_SETTING, if (it) "fullscreen" else "windowed")
+                                setFullscreen(it)
+                            },
+                        )
+                        Text("  Open fullscreen", color = MaterialTheme.colorScheme.onBackground)
+                    }
+                    Text(
+                        "Off opens in a window at the default size. Toggling here also applies now.",
+                        color = ReliquaryMuted,
+                        fontSize = 12.sp,
+                    )
+                }
+            }
+        }
 
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
             Column {
