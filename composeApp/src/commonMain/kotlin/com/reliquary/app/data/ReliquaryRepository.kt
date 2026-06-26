@@ -12,6 +12,7 @@ import com.reliquary.app.domain.Loan
 import com.reliquary.app.domain.Person
 import com.reliquary.app.domain.Status
 import com.reliquary.app.domain.VALUE_FIELDS
+import com.reliquary.app.domain.parseTags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -94,6 +95,24 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
     fun updateStatus(itemId: String, status: String?) {
         val item = getItem(itemId) ?: return
         upsertItem(item.copy(status = status, updatedAt = nowMillis()))
+    }
+
+    /** Append a tag to an item (deduped). */
+    fun addTag(itemId: String, tag: String) {
+        val item = getItem(itemId) ?: return
+        val clean = tag.trim()
+        if (clean.isBlank()) return
+        val tags = (parseTags(item.tags) + clean).distinct().joinToString(", ")
+        upsertItem(item.copy(tags = tags, updatedAt = nowMillis()))
+    }
+
+    /** Set or clear a single extras key on an item, preserving the rest. */
+    fun setExtra(itemId: String, key: String, value: String?) {
+        val item = getItem(itemId) ?: return
+        val map = decodeExtras(item.extraJson).toMutableMap()
+        if (value.isNullOrBlank()) map.remove(key) else map[key] = value
+        val extraJson = if (map.isEmpty()) null else json.encodeToString(map)
+        upsertItem(item.copy(extraJson = extraJson, updatedAt = nowMillis()))
     }
 
     /** A random owned, unfinished item to suggest — falls back to any owned item. */

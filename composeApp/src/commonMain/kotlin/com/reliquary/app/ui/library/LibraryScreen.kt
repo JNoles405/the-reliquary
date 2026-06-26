@@ -27,11 +27,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
+import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.Status
 import com.reliquary.app.ui.ActiveTab
 import com.reliquary.app.ui.Navigator
@@ -111,6 +115,9 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     val selected = remember(active) { mutableStateListOf<String>() }
     fun exitSelection() { selectionMode = false; selected.clear() }
 
+    var bulkDialog by remember(active) { mutableStateOf<String?>(null) } // "tag" | "series"
+    var bulkText by remember(active) { mutableStateOf("") }
+
     var coverDp by remember { mutableStateOf(container.repository.getSetting("ui.coverSize")?.toIntOrNull() ?: 150) }
     fun cycleCover() {
         coverDp = when (coverDp) { in 0..120 -> 150; in 121..170 -> 190; else -> 110 }
@@ -164,6 +171,12 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text("${selected.size} selected", color = ReliquaryMuted, fontSize = 13.sp)
+                        PillButton("Tag…", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                            if (selected.isNotEmpty()) { bulkText = ""; bulkDialog = "tag" }
+                        }
+                        PillButton("Add to series…", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                            if (selected.isNotEmpty()) { bulkText = ""; bulkDialog = "series" }
+                        }
                         PillButton("Mark finished", null, MaterialTheme.colorScheme.primary, Color.Black) {
                             selected.toList().forEach { id ->
                                 container.repository.getItem(id)?.let {
@@ -239,6 +252,37 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                 }
             }
         }
+    }
+
+    if (bulkDialog != null) {
+        AlertDialog(
+            onDismissRequest = { bulkDialog = null },
+            title = {
+                Text(if (bulkDialog == "tag") "Tag ${selected.size} items" else "Add ${selected.size} items to series")
+            },
+            text = {
+                OutlinedTextField(
+                    value = bulkText,
+                    onValueChange = { bulkText = it },
+                    singleLine = true,
+                    label = { Text(if (bulkDialog == "tag") "Tag" else "Series name") },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val t = bulkText.trim()
+                    if (t.isNotBlank()) {
+                        selected.toList().forEach { id ->
+                            if (bulkDialog == "tag") container.repository.addTag(id, t)
+                            else container.repository.setExtra(id, SERIES_KEY, t)
+                        }
+                    }
+                    bulkDialog = null
+                    exitSelection()
+                }) { Text("Apply") }
+            },
+            dismissButton = { TextButton(onClick = { bulkDialog = null }) { Text("Cancel") } },
+        )
     }
 }
 
