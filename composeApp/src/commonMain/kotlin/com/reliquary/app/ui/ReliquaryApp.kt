@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -186,9 +189,10 @@ private fun TopNav(
         val loansLabel = if (overdueCount > 0) "Loans ($overdueCount)" else "Loans"
         Row(
             Modifier
-                .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp))
+                .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(22.dp))
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 4.dp, vertical = 2.dp),
+                .padding(horizontal = 8.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TabLabel("Discover", navigator.current == Screen.Discover) { navigator.resetTo(Screen.Discover) }
@@ -229,11 +233,22 @@ private fun TopNav(
 
 @Composable
 private fun TabLabel(text: String, selected: Boolean, onClick: () -> Unit) {
-    Text(
-        text = text,
-        color = if (selected) MaterialTheme.colorScheme.onBackground else ReliquaryMuted,
-        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-        fontSize = 15.sp,
-        modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 9.dp, vertical = 4.dp),
-    )
+    // Constant font weight so a selected (bold-feeling) tab never changes width and
+    // shifts its neighbors; selection is shown by a rounded tint + accent color, and
+    // the rounded clip keeps the hover highlight inside the rounded outline.
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 11.dp, vertical = 5.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            color = if (selected) MaterialTheme.colorScheme.primary else ReliquaryMuted,
+            fontWeight = FontWeight.Medium,
+            fontSize = 15.sp,
+        )
+    }
 }

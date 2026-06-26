@@ -51,7 +51,8 @@ fun FrameWindowScope.ReliquaryTitleBar(state: WindowState, onClose: () -> Unit) 
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
-                    if (state.placement == WindowPlacement.Maximized) return@awaitEachGesture
+                    // Only drag a normal floating window (not when maximized/fullscreen).
+                    if (state.placement != WindowPlacement.Floating) return@awaitEachGesture
                     val startMouse = MouseInfo.getPointerInfo().location
                     val startX = composeWindow.x
                     val startY = composeWindow.y
@@ -70,9 +71,11 @@ fun FrameWindowScope.ReliquaryTitleBar(state: WindowState, onClose: () -> Unit) 
         Spacer(Modifier.weight(1f))
         CaptionButton(Icons.Filled.Remove) { state.isMinimized = true }
         CaptionButton(Icons.Filled.CropSquare) {
-            // Floating -> Maximized; Maximized/Fullscreen -> Floating (also exits fullscreen).
+            // Maximize = true fullscreen so the window sits ABOVE the Windows taskbar
+            // (a plain Maximized undecorated window leaves the taskbar visible).
+            // Toggle back to a floating window to "restore".
             state.placement = if (state.placement == WindowPlacement.Floating) {
-                WindowPlacement.Maximized
+                WindowPlacement.Fullscreen
             } else {
                 WindowPlacement.Floating
             }

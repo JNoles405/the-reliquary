@@ -30,6 +30,7 @@ class DiscoverService(private val client: HttpClient, private val keys: ApiKeySt
         return results.mapNotNull { el ->
             val o = el.obj() ?: return@mapNotNull null
             val title = o.string(titleKey) ?: return@mapNotNull null
+            val backdrop = o.string("backdrop_path")?.let { "https://image.tmdb.org/t/p/w1280$it" }
             MetadataResult(
                 providerId = "tmdb",
                 providerName = "TMDB",
@@ -40,8 +41,81 @@ class DiscoverService(private val client: HttpClient, private val keys: ApiKeySt
                 coverUrl = o.string("poster_path")?.let { "https://image.tmdb.org/t/p/w780$it" },
                 identifierType = "TMDB",
                 identifier = o.string("id"),
+                rating = o.double("vote_average")?.takeIf { it > 0 },
+                extra = backdrop?.let { mapOf("_backdrop" to it) } ?: emptyMap(),
             )
         }
+    }
+
+    /** Popular books from Open Library — keyless, so Discover stays full even with no API keys. */
+    suspend fun trendingBooks(): List<MetadataResult> {
+        val url = "https://openlibrary.org/trending/weekly.json"
+        val works = runCatching {
+            ReliquaryJson.parseToJsonElement(
+                client.get(url) { header(HttpHeaders.UserAgent, "TheReliquary/0.1") }.bodyAsText(),
+            ).obj()?.array("works")
+        }.getOrNull() ?: return emptyList()
+        return works.mapNotNull { el ->
+            val o = el.obj() ?: return@mapNotNull null
+            val title = o.string("title") ?: return@mapNotNull null
+            val coverId = o.long("cover_i")
+            val authors = o.array("author_name")?.strings()?.joinToString(", ")?.takeIf { it.isNotBlank() }
+            MetadataResult(
+                providerId = "openlibrary",
+                providerName = "Open Library",
+                mediaType = MediaType.BOOKS,
+                title = title,
+                creators = authors,
+                releaseYear = o.long("first_publish_year"),
+                coverUrl = coverId?.let { "https://covers.openlibrary.org/b/id/$it-L.jpg" },
+                identifierType = "OpenLibrary",
+                identifier = o.string("key"),
+            )
+        }
+    }
+
+    /**
+     * Fetch a richer view (cast, backdrop, genres) for a Discover card the user
+     * opened. Only TMDB movies/TV expose credits; other sources return as-is.
+     */
+    suspend fun detailsFor(result: MetadataResult): MetadataResult = when {
+        result.providerId == "tmdb" && result.mediaType == MediaType.MOVIES -> tmdbDetails("movie", result, "title", "release_date")
+        result.providerId == "tmdb" && result.mediaType == MediaType.TV -> tmdbDetails("tv", result, "name", "first_air_date")
+        else -> result
+    }
+
+    private suspend fun tmdbDetails(path: String, result: MetadataResult, titleKey: String, dateKey: String): MetadataResult {
+        val key = keys.get(ApiKeys.TMDB) ?: return result
+        val id = result.identifier ?: return result
+        val url = "https://api.themoviedb.org/3/$path/$id?api_key=$key&append_to_response=credits"
+        val root = runCatching {
+            ReliquaryJson.parseToJsonElement(client.get(url).bodyAsText()).obj()
+        }.getOrNull() ?: return result
+        val credits = root["credits"].obj()
+        val cast = credits?.array("cast")?.mapNotNull { it.obj() }?.take(12)?.joinToString(", ") { c ->
+            val name = c.string("name").orEmpty()
+            val role = c.string("character")
+            if (!role.isNullOrBlank()) "$name ($role)" else name
+        }?.takeIf { it.isNotBlank() }
+        val crew = credits?.array("crew")?.mapNotNull { it.obj() }.orEmpty()
+        val director = crew.filter { it.string("job") in setOf("Director") }
+            .mapNotNull { it.string("name") }.distinct().joinToString(", ").takeIf { it.isNotBlank() }
+        val genres = root.array("genres")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")?.takeIf { it.isNotBlank() }
+        val backdrop = root.string("backdrop_path")?.let { "https://image.tmdb.org/t/p/w1280$it" }
+        val runtime = root.long("runtime")?.takeIf { it > 0 }
+        val extra = result.extra.toMutableMap()
+        cast?.let { extra["Cast"] = it }
+        director?.let { extra["Director"] = it }
+        runtime?.let { extra["Runtime"] = "$it min" }
+        backdrop?.let { extra["_backdrop"] = it }
+        return result.copy(
+            title = root.string(titleKey) ?: result.title,
+            description = root.string("overview")?.takeIf { it.isNotBlank() } ?: result.description,
+            releaseYear = yearFrom(root.string(dateKey)) ?: result.releaseYear,
+            genres = genres ?: result.genres,
+            rating = root.double("vote_average")?.takeIf { it > 0 } ?: result.rating,
+            extra = extra,
+        )
     }
 
     suspend fun trendingAnime(): List<MetadataResult> {
