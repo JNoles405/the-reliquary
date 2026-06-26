@@ -79,6 +79,16 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator) {
         )
 
         KeySection(
+            title = "OMDb — Movies (alternative)",
+            help = "Free key by email at omdbapi.com/apikey.aspx. An easy alternative or " +
+                "supplement to TMDB for movie lookups.",
+            fields = listOf(KeyField("API Key", ApiKeys.OMDB)),
+            keysActive = keys.has(ApiKeys.OMDB),
+            onSave = { values -> values.forEach { (k, v) -> keys.set(k, v) } },
+            initialValue = { keys.get(it) },
+        )
+
+        KeySection(
             title = "IGDB — Games",
             help = "Register an app at dev.twitch.tv/console/apps to get a Client ID and Client Secret.",
             fields = listOf(

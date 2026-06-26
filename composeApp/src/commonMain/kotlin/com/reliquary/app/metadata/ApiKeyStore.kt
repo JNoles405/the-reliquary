@@ -5,6 +5,7 @@ import com.reliquary.app.data.ReliquaryRepository
 /** Setting keys for the key-gated providers. Stored locally, never committed. */
 object ApiKeys {
     const val TMDB = "tmdb.apiKey"
+    const val OMDB = "omdb.apiKey"
     const val IGDB_CLIENT_ID = "igdb.clientId"
     const val IGDB_CLIENT_SECRET = "igdb.clientSecret"
     const val COMICVINE = "comicvine.apiKey"

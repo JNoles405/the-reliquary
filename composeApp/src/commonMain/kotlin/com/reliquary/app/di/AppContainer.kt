@@ -12,6 +12,7 @@ import com.reliquary.app.metadata.providers.DiscogsProvider
 import com.reliquary.app.metadata.providers.GoogleBooksProvider
 import com.reliquary.app.metadata.providers.IgdbProvider
 import com.reliquary.app.metadata.providers.MusicBrainzProvider
+import com.reliquary.app.metadata.providers.OmdbProvider
 import com.reliquary.app.metadata.providers.OpenLibraryProvider
 import com.reliquary.app.metadata.providers.TmdbProvider
 import com.reliquary.app.network.createHttpClient
@@ -41,6 +42,7 @@ class AppContainer(driver: SqlDriver) {
             MusicBrainzProvider(httpClient),
             // Key-gated providers — activate once a key is saved in Settings.
             TmdbProvider(httpClient, apiKeyStore),
+            OmdbProvider(httpClient, apiKeyStore),
             DiscogsProvider(httpClient, apiKeyStore),
             ComicVineProvider(httpClient, apiKeyStore),
             IgdbProvider(httpClient, apiKeyStore),
