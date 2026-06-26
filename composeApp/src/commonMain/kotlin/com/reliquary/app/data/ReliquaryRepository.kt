@@ -7,11 +7,19 @@ import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.reliquary.app.db.ReliquaryDatabase
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.CustomTab
+import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.Loan
 import com.reliquary.app.domain.Person
+import com.reliquary.app.domain.Status
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+/** Result of an import: the resulting item and whether it was newly created. */
+data class ImportOutcome(val item: CollectionItem, val isNew: Boolean)
 
 /**
  * Single facade over the local database. Reads are exposed as Flows so the UI
@@ -22,6 +30,7 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
 
     private val q = db.reliquaryQueries
     private val io = Dispatchers.Default
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     // ---- Items -------------------------------------------------------------
 
@@ -80,6 +89,62 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
     // ---- Sync (all rows including soft-deleted) ----------------------------
 
     fun allItems(): List<CollectionItem> = q.selectAllItems().executeAsList().map { it.toDomain() }
+
+    // ---- Import with duplicate detection -----------------------------------
+
+    /** Find an existing item that the candidate likely duplicates, or null. */
+    fun findDuplicate(candidate: CollectionItem): CollectionItem? {
+        val all = allItems().filter { !it.deleted }
+        candidate.barcode?.takeIf { it.isNotBlank() }
+            ?.let { bc -> all.firstOrNull { it.barcode == bc } }?.let { return it }
+        if (!candidate.identifier.isNullOrBlank() && !candidate.identifierType.isNullOrBlank()) {
+            all.firstOrNull {
+                it.mediaType == candidate.mediaType &&
+                    it.identifier == candidate.identifier &&
+                    it.identifierType == candidate.identifierType
+            }?.let { return it }
+        }
+        val key = normalizeTitle(candidate.title)
+        return all.firstOrNull {
+            it.mediaType == candidate.mediaType &&
+                normalizeTitle(it.title) == key &&
+                it.releaseYear == candidate.releaseYear
+        }
+    }
+
+    /** Insert the candidate, or update the existing duplicate while preserving user data. */
+    fun importOrUpdate(candidate: CollectionItem): ImportOutcome {
+        val existing = findDuplicate(candidate)
+        if (existing == null) {
+            upsertItem(candidate)
+            return ImportOutcome(candidate, isNew = true)
+        }
+        val merged = candidate.copy(
+            id = existing.id,
+            addedAt = existing.addedAt,
+            coverPath = existing.coverPath,
+            favorite = existing.favorite,
+            location = existing.location ?: candidate.location,
+            notes = existing.notes ?: candidate.notes,
+            extraJson = mergeExtras(existing.extraJson, candidate.extraJson),
+            updatedAt = nowMillis(),
+        )
+        upsertItem(merged)
+        return ImportOutcome(merged, isNew = false)
+    }
+
+    private fun normalizeTitle(s: String): String = s.lowercase().filter { it.isLetterOrDigit() }
+
+    private fun decodeExtras(jsonStr: String?): Map<String, String> = jsonStr
+        ?.let { runCatching { json.decodeFromString<Map<String, String>>(it) }.getOrNull() } ?: emptyMap()
+
+    /** Fresh provider extras, but keep the user's edition fields and status from the existing item. */
+    private fun mergeExtras(existingJson: String?, candidateJson: String?): String? {
+        val merged = decodeExtras(candidateJson).toMutableMap()
+        val existing = decodeExtras(existingJson)
+        (EDITION_FIELDS + Status.KEY).forEach { key -> existing[key]?.let { merged[key] = it } }
+        return if (merged.isEmpty()) null else json.encodeToString(merged)
+    }
     fun allPeople(): List<Person> = q.selectAllPeopleForSync().executeAsList().map { it.toDomain() }
     fun allLoans(): List<Loan> = q.selectAllLoansForSync().executeAsList().map { it.toDomain() }
     fun allCustomTabs(): List<CustomTab> = q.selectAllCustomTabsForSync().executeAsList().map { it.toDomain() }

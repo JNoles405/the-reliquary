@@ -97,12 +97,13 @@ fun SearchImportScreen(
         scope.launch {
             // Pull the full record (cast, crew, runtime, etc.) before saving.
             val full = container.metadataService.detailsFor(result)
-            val item = full.toCollectionItem(barcode = barcode, customTabId = customTabId)
-            container.repository.upsertItem(item)
+            val candidate = full.toCollectionItem(barcode = barcode, customTabId = customTabId)
+            // Update an existing match instead of creating a duplicate.
+            val outcome = container.repository.importOrUpdate(candidate)
             loading = false
             message = null
             navigator.pop()
-            navigator.push(Screen.Detail(item.id))
+            navigator.push(Screen.Detail(outcome.item.id))
         }
     }
 
