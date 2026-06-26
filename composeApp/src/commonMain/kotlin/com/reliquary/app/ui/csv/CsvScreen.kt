@@ -38,10 +38,12 @@ import com.reliquary.app.sync.readTextFile
 import com.reliquary.app.sync.writeTextFile
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.util.openUrl
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -114,6 +116,67 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
 
         Spacer(Modifier.height(8.dp))
         LetterboxdSection(container)
+        Spacer(Modifier.height(8.dp))
+        SimklSection(container)
+    }
+}
+
+@Composable
+private fun SimklSection(container: AppContainer) {
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf<String?>(null) }
+    var userCode by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val hasKey = container.apiKeyStore.has(com.reliquary.app.metadata.ApiKeys.SIMKL)
+
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Import from Simkl", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(
+                "Connects your Simkl account and imports your movies, TV shows, and " +
+                    "anime with their watch status.",
+                color = ReliquaryMuted,
+                fontSize = 12.sp,
+            )
+            if (!hasKey) {
+                Text("Set your Simkl Client ID in Settings first.", color = ReliquaryMuted, fontSize = 13.sp)
+            } else {
+                PillButton(label = "Connect & import", icon = null, background = MaterialTheme.colorScheme.primary, foreground = Color.Black) {
+                    if (busy) return@PillButton
+                    busy = true; status = "Requesting a code…"; userCode = null
+                    scope.launch {
+                        val pin = runCatching { container.simklImporter.requestPin() }.getOrNull()
+                        if (pin == null) {
+                            status = "Couldn't start — check your Client ID."; busy = false; return@launch
+                        }
+                        userCode = pin.userCode
+                        status = "Open simkl.com/pin, enter the code below, then wait here…"
+                        var token: String? = null
+                        var elapsed = 0
+                        while (elapsed < pin.expiresIn && token == null) {
+                            delay(pin.interval * 1000L)
+                            elapsed += pin.interval
+                            token = runCatching { container.simklImporter.poll(pin.userCode) }.getOrNull()
+                        }
+                        if (token == null) {
+                            status = "Timed out waiting for authorization."; userCode = null; busy = false; return@launch
+                        }
+                        status = "Importing your library…"
+                        val count = runCatching { container.simklImporter.importAll(token) }.getOrElse { -1 }
+                        userCode = null
+                        status = if (count < 0) "Import failed." else "Imported/updated $count items from Simkl."
+                        busy = false
+                    }
+                }
+                userCode?.let { code ->
+                    Text("Code: $code", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
+                    PillButton(label = "Open simkl.com/pin", icon = null, background = ReliquarySurfaceVariant, foreground = Color.White) {
+                        openUrl("https://simkl.com/pin")
+                    }
+                }
+            }
+            status?.let { Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp) }
+        }
     }
 }
 
