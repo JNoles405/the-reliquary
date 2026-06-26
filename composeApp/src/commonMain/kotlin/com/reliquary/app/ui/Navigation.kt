@@ -24,6 +24,8 @@ sealed interface Screen {
     data class Person(val personId: String) : Screen
     data object Tags : Screen
     data class TagItems(val tag: String) : Screen
+    data object Series : Screen
+    data class SeriesItems(val series: String) : Screen
     data object Settings : Screen
 }
 

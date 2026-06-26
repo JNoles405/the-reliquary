@@ -47,6 +47,7 @@ import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.PROGRESS_KEY
 import com.reliquary.app.domain.PROGRESS_TOTAL_KEY
+import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
 import com.reliquary.app.domain.parseTags
 import com.reliquary.app.domain.progressUnit
@@ -269,6 +270,14 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 )
                 Spacer(Modifier.height(4.dp))
                 Text("$cur / $tot", color = ReliquaryMuted, fontSize = 12.sp)
+            }
+
+            val series = allExtras.firstOrNull { it.first == SERIES_KEY }?.second
+            if (!series.isNullOrBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Text("Series", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Row { StatusChip(series, selected = false) { navigator.push(Screen.SeriesItems(series)) } }
             }
 
             val tags = parseTags(current.tags)

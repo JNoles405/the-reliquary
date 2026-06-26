@@ -51,6 +51,8 @@ import com.reliquary.app.ui.settings.CustomTabsScreen
 import com.reliquary.app.ui.settings.SettingsScreen
 import com.reliquary.app.ui.stats.StatsScreen
 import com.reliquary.app.ui.sync.SyncScreen
+import com.reliquary.app.ui.series.SeriesItemsScreen
+import com.reliquary.app.ui.series.SeriesScreen
 import com.reliquary.app.ui.tags.TagItemsScreen
 import com.reliquary.app.ui.tags.TagsScreen
 import com.reliquary.app.ui.theme.ReliquaryMuted
@@ -104,6 +106,8 @@ fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {})
                 is Screen.Person -> PersonScreen(container, screen.personId, navigator)
                 Screen.Tags -> TagsScreen(container, navigator)
                 is Screen.TagItems -> TagItemsScreen(container, screen.tag, navigator)
+                Screen.Series -> SeriesScreen(container, navigator)
+                is Screen.SeriesItems -> SeriesItemsScreen(container, screen.series, navigator)
                 Screen.Settings -> SettingsScreen(container, navigator, onAccentChange)
             }
         }
@@ -169,6 +173,7 @@ private fun TopNav(
             TabLabel(loansLabel, navigator.current == Screen.Loans) { navigator.resetTo(Screen.Loans) }
             TabLabel("Stats", navigator.current == Screen.Stats) { navigator.resetTo(Screen.Stats) }
             TabLabel("Tags", navigator.current == Screen.Tags) { navigator.resetTo(Screen.Tags) }
+            TabLabel("Series", navigator.current == Screen.Series) { navigator.resetTo(Screen.Series) }
         }
         IconButton(onClick = onSurprise) {
             Icon(

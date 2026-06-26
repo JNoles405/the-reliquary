@@ -32,6 +32,8 @@ import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.MediaType
+import com.reliquary.app.domain.SERIES_KEY
+import com.reliquary.app.domain.SERIES_NUM_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
 import com.reliquary.app.domain.parseTags
 import com.reliquary.app.metadata.ReliquaryJson
@@ -80,6 +82,8 @@ fun EditItemScreen(
     }
     var wanted by remember(itemId) { mutableStateOf(existing?.wanted ?: false) }
     var tags by remember(itemId) { mutableStateOf(existing?.tags ?: "") }
+    var series by remember(itemId) { mutableStateOf(existingExtras[SERIES_KEY] ?: "") }
+    var seriesNum by remember(itemId) { mutableStateOf(existingExtras[SERIES_NUM_KEY] ?: "") }
 
     fun save() {
         if (title.isBlank()) return
@@ -91,6 +95,8 @@ fun EditItemScreen(
             val value = state?.value?.trim().orEmpty()
             if (value.isBlank()) extras.remove(key) else extras[key] = value
         }
+        if (series.isBlank()) extras.remove(SERIES_KEY) else extras[SERIES_KEY] = series.trim()
+        if (seriesNum.isBlank()) extras.remove(SERIES_NUM_KEY) else extras[SERIES_NUM_KEY] = seriesNum.trim()
         val mergedExtraJson = if (extras.isEmpty()) null else ReliquaryJson.encodeToString(extras)
         val normalizedTags = parseTags(tags).joinToString(", ").ifBlank { null }
         val item = CollectionItem(
@@ -146,6 +152,8 @@ fun EditItemScreen(
         Field("Description", description, singleLine = false) { description = it }
         Field("Notes", notes, singleLine = false) { notes = it }
         Field("Tags (comma-separated)", tags) { tags = it }
+        Field("Series", series) { series = it }
+        Field("Series #", seriesNum) { seriesNum = it }
 
         Text(
             "Edition details",
