@@ -118,6 +118,20 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     var bulkDialog by remember(active) { mutableStateOf<String?>(null) } // "tag" | "series"
     var bulkText by remember(active) { mutableStateOf("") }
 
+    val viewsStore = remember { SmartViewsStore(container.repository) }
+    var views by remember { mutableStateOf(viewsStore.list()) }
+    var saveViewDialog by remember { mutableStateOf(false) }
+    var manageViewsDialog by remember { mutableStateOf(false) }
+    var viewName by remember { mutableStateOf("") }
+    fun applyView(v: SmartView) {
+        sort = SortOrder.entries.firstOrNull { it.name == v.sort } ?: SortOrder.TITLE
+        favoritesOnly = v.favorites
+        onLoanOnly = v.onLoan
+        unfinishedOnly = v.unfinished
+        wishlistOnly = v.wishlist
+        genre = v.genre
+    }
+
     var coverDp by remember { mutableStateOf(container.repository.getSetting("ui.coverSize")?.toIntOrNull() ?: 150) }
     fun cycleCover() {
         coverDp = when (coverDp) { in 0..120 -> 150; in 121..170 -> 190; else -> 110 }
@@ -161,6 +175,10 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     onToggleSelect = { if (selectionMode) exitSelection() else selectionMode = true },
                     coverDp = coverDp,
                     onCycleCover = { cycleCover() },
+                    views = views,
+                    onApplyView = { applyView(it) },
+                    onSaveView = { viewName = ""; saveViewDialog = true },
+                    onManageViews = { manageViewsDialog = true },
                 )
             }
             if (selectionMode) {
@@ -284,6 +302,56 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
             dismissButton = { TextButton(onClick = { bulkDialog = null }) { Text("Cancel") } },
         )
     }
+
+    if (saveViewDialog) {
+        AlertDialog(
+            onDismissRequest = { saveViewDialog = false },
+            title = { Text("Save view") },
+            text = {
+                OutlinedTextField(
+                    value = viewName,
+                    onValueChange = { viewName = it },
+                    singleLine = true,
+                    label = { Text("View name") },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val n = viewName.trim()
+                    if (n.isNotBlank()) {
+                        viewsStore.save(
+                            SmartView(n, sort.name, favoritesOnly, onLoanOnly, unfinishedOnly, wishlistOnly, genre),
+                        )
+                        views = viewsStore.list()
+                    }
+                    saveViewDialog = false
+                }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { saveViewDialog = false }) { Text("Cancel") } },
+        )
+    }
+
+    if (manageViewsDialog) {
+        AlertDialog(
+            onDismissRequest = { manageViewsDialog = false },
+            title = { Text("Manage views") },
+            text = {
+                Column {
+                    views.forEach { view ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(view.name, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+                            TextButton(onClick = {
+                                viewsStore.delete(view.name)
+                                views = viewsStore.list()
+                                if (views.isEmpty()) manageViewsDialog = false
+                            }) { Text("Delete") }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { manageViewsDialog = false }) { Text("Close") } },
+        )
+    }
 }
 
 @Composable
@@ -305,6 +373,10 @@ private fun Controls(
     onToggleSelect: () -> Unit,
     coverDp: Int,
     onCycleCover: () -> Unit,
+    views: List<SmartView>,
+    onApplyView: (SmartView) -> Unit,
+    onSaveView: () -> Unit,
+    onManageViews: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
@@ -329,6 +401,15 @@ private fun Controls(
                 genres.forEach { g ->
                     DropdownMenuItem(text = { Text(g) }, onClick = { onGenre(g); dismiss() })
                 }
+            }
+        }
+        MenuChip("Views") { dismiss ->
+            DropdownMenuItem(text = { Text("Save current view…") }, onClick = { onSaveView(); dismiss() })
+            if (views.isNotEmpty()) {
+                DropdownMenuItem(text = { Text("Manage views…") }, onClick = { onManageViews(); dismiss() })
+            }
+            views.forEach { view ->
+                DropdownMenuItem(text = { Text(view.name) }, onClick = { onApplyView(view); dismiss() })
             }
         }
     }
