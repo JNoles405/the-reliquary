@@ -104,6 +104,9 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
+            // The SQLite JDBC driver needs java.sql; jlink would otherwise strip it
+            // from the bundled runtime, crashing at startup with java/sql/DriverManager.
+            modules("java.sql")
             packageName = "TheReliquary"
             packageVersion = "1.0.0"
             description = "The Reliquary — personal media collection manager"
