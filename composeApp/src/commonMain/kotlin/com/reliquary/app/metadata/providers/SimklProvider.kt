@@ -60,12 +60,15 @@ class SimklProvider(
             .obj() ?: return null
         val rating = o["ratings"]?.obj()?.get("simkl")?.obj()?.double("rating")
             ?: o["ratings"]?.obj()?.get("imdb")?.obj()?.double("rating")
+        val tmdbId = result.extra["_tmdb"]
+        val cast = if (tmdbId != null && keys.has(ApiKeys.TMDB)) fetchTmdbCast(tmdbId) else null
         val extras = buildMap {
             o.string("network")?.let { put("Network", it) }
             o.string("country")?.let { put("Country", it) }
             o.long("runtime")?.takeIf { it > 0 }?.let { put("Runtime", "$it min") }
             o.long("total_episodes")?.takeIf { it > 0 }?.let { put("Episodes", it.toString()) }
             o.string("status")?.let { put("Airing status", it) }
+            cast?.let { put("Cast", it) }
         }
         return result.copy(
             description = o.string("overview")?.takeIf { it.isNotBlank() } ?: result.description,
@@ -79,6 +82,7 @@ class SimklProvider(
         val title = string("title") ?: return null
         val ids = this["ids"].obj()
         val simklId = ids?.long("simkl")?.toString() ?: ids?.string("simkl")
+        val tmdbId = ids?.long("tmdb")?.toString() ?: ids?.string("tmdb")
         val poster = string("poster")?.let { "https://simkl.in/posters/${it}_m.jpg" }
         return MetadataResult(
             providerId = id,
@@ -89,7 +93,22 @@ class SimklProvider(
             coverUrl = poster,
             identifierType = "Simkl",
             identifier = simklId,
+            // Hidden, used by details() to pull a cast list from TMDB if a key is set.
+            extra = tmdbId?.let { mapOf("_tmdb" to it) } ?: emptyMap(),
         )
+    }
+
+    private suspend fun fetchTmdbCast(tmdbId: String): String? {
+        val tmdbKey = keys.get(ApiKeys.TMDB) ?: return null
+        val url = "https://api.themoviedb.org/3/tv/$tmdbId/credits?api_key=$tmdbKey"
+        val o = runCatching {
+            ReliquaryJson.parseToJsonElement(client.get(url) { header(HttpHeaders.UserAgent, USER_AGENT) }.bodyAsText()).obj()
+        }.getOrNull() ?: return null
+        return o.array("cast")?.mapNotNull { it.obj() }?.take(12)?.joinToString(", ") { c ->
+            val name = c.string("name").orEmpty()
+            val role = c.string("character")
+            if (!role.isNullOrBlank()) "$name ($role)" else name
+        }?.takeIf { it.isNotBlank() }
     }
 
     private companion object {
