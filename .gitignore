@@ -33,3 +33,6 @@ Thumbs.db
 
 # Local secrets (API keys live in the app's settings store, never committed)
 secrets.properties
+
+# Local packaging JDK (downloaded for building the desktop installer)
+.jdk/

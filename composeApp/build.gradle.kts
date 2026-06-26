@@ -108,6 +108,17 @@ compose.desktop {
             packageVersion = "1.0.0"
             description = "The Reliquary — personal media collection manager"
             vendor = "JNoles405"
+
+            windows {
+                // Make the install visible and admin-free.
+                menuGroup = "The Reliquary"
+                menu = true          // Start-menu shortcut
+                shortcut = true      // desktop shortcut
+                perUserInstall = true // installs under the user profile, no UAC
+                dirChooser = true    // show an install-location page
+                // Stable GUID so future versions upgrade in place instead of stacking.
+                upgradeUuid = "5f7a2c1e-3b9d-4e6a-8c2f-1a2b3c4d5e6f"
+            }
         }
     }
 }
