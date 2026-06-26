@@ -85,6 +85,10 @@ fun SeriesItemsScreen(container: AppContainer, series: String, navigator: Naviga
                 ),
             )
     }
+    val missing = remember(matches) {
+        val nums = matches.mapNotNull { extrasOf(it)[SERIES_NUM_KEY]?.toIntOrNull() }.toSortedSet()
+        if (nums.size >= 2) ((nums.first()..nums.last()).toSet() - nums).sorted() else emptyList()
+    }
     Column(Modifier.fillMaxSize().padding(top = 8.dp)) {
         Text(
             series,
@@ -93,6 +97,15 @@ fun SeriesItemsScreen(container: AppContainer, series: String, navigator: Naviga
             fontSize = 22.sp,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
         )
+        if (missing.isNotEmpty()) {
+            Text(
+                "Missing #: ${missing.joinToString(", ")}",
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp),
+            )
+        }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(150.dp),
             modifier = Modifier.fillMaxSize(),

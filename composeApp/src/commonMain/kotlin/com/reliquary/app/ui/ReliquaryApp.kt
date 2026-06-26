@@ -60,7 +60,11 @@ import com.reliquary.app.ui.theme.ReliquaryMuted
 @Composable
 fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {}) {
     val navigator = rememberNavigator()
-    var activeTab by remember { mutableStateOf<ActiveTab>(ActiveTab.Builtin(MediaType.MOVIES)) }
+    var activeTab by remember {
+        val defaultType = container.repository.getSetting("ui.defaultTab")
+            ?.let { name -> MediaType.entries.firstOrNull { it.name == name } } ?: MediaType.MOVIES
+        mutableStateOf<ActiveTab>(ActiveTab.Builtin(defaultType))
+    }
     val customTabs by remember { container.repository.customTabs() }.collectAsState(emptyList())
     val activeLoans by remember { container.repository.activeLoans() }.collectAsState(emptyList())
     val overdueCount = activeLoans.count { it.dueAt != null && it.dueAt < nowMillis() }

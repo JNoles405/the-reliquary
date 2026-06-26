@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.filled.SyncAlt
 import com.reliquary.app.di.AppContainer
+import com.reliquary.app.domain.MediaType
 import com.reliquary.app.metadata.ApiKeys
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
@@ -46,6 +47,7 @@ import com.reliquary.app.ui.theme.ACCENTS
 import com.reliquary.app.ui.theme.toRgbHex
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
+import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 
 @Composable
 fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange: (String) -> Unit = {}) {
@@ -82,6 +84,30 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                             Modifier.size(34.dp).clip(CircleShape).background(option.color)
                                 .clickable { onAccentChange(option.color.toRgbHex()) },
                         )
+                    }
+                }
+            }
+        }
+
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+            Column {
+                Text("Open to tab", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Spacer(Modifier.height(10.dp))
+                var defaultTab by remember { mutableStateOf(container.repository.getSetting("ui.defaultTab") ?: MediaType.MOVIES.name) }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MediaType.entries.forEach { type ->
+                        val selected = defaultTab == type.name
+                        Box(
+                            Modifier.clip(RoundedCornerShape(20.dp))
+                                .background(if (selected) MaterialTheme.colorScheme.primary else ReliquarySurfaceVariant)
+                                .clickable {
+                                    defaultTab = type.name
+                                    container.repository.setSetting("ui.defaultTab", type.name)
+                                }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text(type.displayName, color = if (selected) Color.Black else Color.White, fontSize = 13.sp)
+                        }
                     }
                 }
             }

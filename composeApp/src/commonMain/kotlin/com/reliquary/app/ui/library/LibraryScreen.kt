@@ -111,8 +111,14 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     val selected = remember(active) { mutableStateListOf<String>() }
     fun exitSelection() { selectionMode = false; selected.clear() }
 
+    var coverDp by remember { mutableStateOf(container.repository.getSetting("ui.coverSize")?.toIntOrNull() ?: 150) }
+    fun cycleCover() {
+        coverDp = when (coverDp) { in 0..120 -> 150; in 121..170 -> 190; else -> 110 }
+        container.repository.setSetting("ui.coverSize", coverDp.toString())
+    }
+
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(150.dp),
+        columns = GridCells.Adaptive(coverDp.dp),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -146,6 +152,8 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     genres = genres, genre = genre, onGenre = { genre = it },
                     selectionMode = selectionMode,
                     onToggleSelect = { if (selectionMode) exitSelection() else selectionMode = true },
+                    coverDp = coverDp,
+                    onCycleCover = { cycleCover() },
                 )
             }
             if (selectionMode) {
@@ -251,6 +259,8 @@ private fun Controls(
     onGenre: (String?) -> Unit,
     selectionMode: Boolean,
     onToggleSelect: () -> Unit,
+    coverDp: Int,
+    onCycleCover: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
@@ -258,6 +268,8 @@ private fun Controls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FilterChip(if (selectionMode) "Cancel select" else "Select", selectionMode, onToggleSelect)
+        val coverLabel = when (coverDp) { in 0..120 -> "S"; in 121..170 -> "M"; else -> "L" }
+        FilterChip("Covers: $coverLabel", selected = false, onClick = onCycleCover)
         MenuChip("Sort: ${sort.label}") { dismiss ->
             SortOrder.entries.forEach { option ->
                 DropdownMenuItem(text = { Text(option.label) }, onClick = { onSort(option); dismiss() })
