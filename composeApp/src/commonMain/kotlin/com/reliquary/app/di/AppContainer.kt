@@ -5,6 +5,7 @@ import com.reliquary.app.csv.CsvService
 import com.reliquary.app.data.ReliquaryRepository
 import com.reliquary.app.db.ReliquaryDatabase
 import com.reliquary.app.images.CoverCache
+import com.reliquary.app.integrations.LetterboxdImporter
 import com.reliquary.app.metadata.ApiKeyStore
 import com.reliquary.app.metadata.MetadataService
 import com.reliquary.app.metadata.UpcLookup
@@ -35,6 +36,7 @@ class AppContainer(driver: SqlDriver) {
     val lanSync = LanSyncManager(syncService)
     val coverCache = CoverCache(httpClient)
     val csvService = CsvService(repository)
+    val letterboxdImporter = LetterboxdImporter(httpClient, repository)
 
     val metadataService: MetadataService = MetadataService(
         listOf(

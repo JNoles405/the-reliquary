@@ -112,6 +112,50 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
                 Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp)
             }
         }
+
+        Spacer(Modifier.height(8.dp))
+        LetterboxdSection(container)
+    }
+}
+
+@Composable
+private fun LetterboxdSection(container: AppContainer) {
+    val scope = rememberCoroutineScope()
+    var username by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Import from Letterboxd", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(
+                "Pulls your recently-watched films from a public Letterboxd account " +
+                    "(via RSS) and marks them Watched. For full history, export your data " +
+                    "from Letterboxd and use Import CSV above.",
+                color = ReliquaryMuted,
+                fontSize = 12.sp,
+            )
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Letterboxd username") },
+            )
+            PillButton(label = "Import watched", icon = null, background = ReliquaryTeal, foreground = Color.Black) {
+                if (busy || username.isBlank()) return@PillButton
+                busy = true; status = "Importing…"
+                scope.launch {
+                    status = runCatching {
+                        val count = container.letterboxdImporter.importWatched(username)
+                        if (count == 0) "No films found for \"$username\" (is the profile public?)."
+                        else "Imported/updated $count films from Letterboxd."
+                    }.getOrElse { "Import failed: ${it.message}" }
+                    busy = false
+                }
+            }
+            status?.let { Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp) }
+        }
     }
 }
 

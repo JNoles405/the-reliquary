@@ -119,11 +119,20 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
             upsertItem(candidate)
             return ImportOutcome(candidate, isNew = true)
         }
-        val merged = candidate.copy(
-            id = existing.id,
-            addedAt = existing.addedAt,
-            coverPath = existing.coverPath,
-            favorite = existing.favorite,
+        // Field-level merge: the candidate fills in fields it has; the existing item
+        // keeps everything else (so a sparse source can't wipe rich data).
+        val merged = existing.copy(
+            subtitle = candidate.subtitle ?: existing.subtitle,
+            creators = candidate.creators ?: existing.creators,
+            releaseYear = candidate.releaseYear ?: existing.releaseYear,
+            description = candidate.description ?: existing.description,
+            coverUrl = candidate.coverUrl ?: existing.coverUrl,
+            barcode = candidate.barcode ?: existing.barcode,
+            identifierType = candidate.identifierType ?: existing.identifierType,
+            identifier = candidate.identifier ?: existing.identifier,
+            rating = candidate.rating ?: existing.rating,
+            genres = candidate.genres ?: existing.genres,
+            format = candidate.format ?: existing.format,
             location = existing.location ?: candidate.location,
             notes = existing.notes ?: candidate.notes,
             extraJson = mergeExtras(existing.extraJson, candidate.extraJson),
@@ -138,10 +147,12 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
     private fun decodeExtras(jsonStr: String?): Map<String, String> = jsonStr
         ?.let { runCatching { json.decodeFromString<Map<String, String>>(it) }.getOrNull() } ?: emptyMap()
 
-    /** Fresh provider extras, but keep the user's edition fields and status from the existing item. */
+    /** Overlay the candidate's extras onto the existing ones, but keep the user's
+     *  edition fields and status from the existing item. */
     private fun mergeExtras(existingJson: String?, candidateJson: String?): String? {
-        val merged = decodeExtras(candidateJson).toMutableMap()
         val existing = decodeExtras(existingJson)
+        val merged = existing.toMutableMap()
+        decodeExtras(candidateJson).forEach { (key, value) -> if (value.isNotBlank()) merged[key] = value }
         (EDITION_FIELDS + Status.KEY).forEach { key -> existing[key]?.let { merged[key] = it } }
         return if (merged.isEmpty()) null else json.encodeToString(merged)
     }
