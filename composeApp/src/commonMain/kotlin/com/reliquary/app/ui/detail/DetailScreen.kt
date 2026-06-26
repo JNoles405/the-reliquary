@@ -23,13 +23,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,9 +45,13 @@ import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.EDITION_FIELDS
+import com.reliquary.app.domain.PROGRESS_KEY
+import com.reliquary.app.domain.PROGRESS_TOTAL_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
 import com.reliquary.app.domain.parseTags
+import com.reliquary.app.domain.progressUnit
 import com.reliquary.app.metadata.ReliquaryJson
+import kotlinx.serialization.encodeToString
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
@@ -96,6 +104,15 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
         container.repository.upsertItem(current.copy(status = value, updatedAt = nowMillis()))
     fun setWanted(value: Boolean) =
         container.repository.upsertItem(current.copy(wanted = value, updatedAt = nowMillis()))
+
+    fun updateExtra(mutate: (MutableMap<String, String>) -> Unit) {
+        val map = current.extraJson
+            ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() }
+            ?.toMutableMap() ?: mutableMapOf()
+        mutate(map)
+        val json = if (map.isEmpty()) null else ReliquaryJson.encodeToString(map)
+        container.repository.upsertItem(current.copy(extraJson = json, updatedAt = nowMillis()))
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(420.dp)) {
@@ -205,6 +222,53 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 StatusChip(if (isWanted) "On wishlist ✓" else "Wishlist", selected = isWanted) {
                     setWanted(!isWanted)
                 }
+            }
+
+            var progCur by remember(current.id) {
+                mutableStateOf(allExtras.firstOrNull { it.first == PROGRESS_KEY }?.second ?: "")
+            }
+            var progTotal by remember(current.id) {
+                mutableStateOf(allExtras.firstOrNull { it.first == PROGRESS_TOTAL_KEY }?.second ?: "")
+            }
+            Spacer(Modifier.height(16.dp))
+            Text("Progress", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = progCur,
+                    onValueChange = { input ->
+                        val v = input.filter { it.isDigit() }
+                        progCur = v
+                        updateExtra { m -> if (v.isBlank()) m.remove(PROGRESS_KEY) else m[PROGRESS_KEY] = v }
+                    },
+                    modifier = Modifier.width(120.dp),
+                    singleLine = true,
+                    label = { Text(progressUnit(current.mediaType)) },
+                )
+                Text("of", color = ReliquaryMuted)
+                OutlinedTextField(
+                    value = progTotal,
+                    onValueChange = { input ->
+                        val v = input.filter { it.isDigit() }
+                        progTotal = v
+                        updateExtra { m -> if (v.isBlank()) m.remove(PROGRESS_TOTAL_KEY) else m[PROGRESS_TOTAL_KEY] = v }
+                    },
+                    modifier = Modifier.width(120.dp),
+                    singleLine = true,
+                    label = { Text("Total") },
+                )
+            }
+            val cur = progCur.toIntOrNull() ?: 0
+            val tot = progTotal.toIntOrNull() ?: 0
+            if (tot > 0) {
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { (cur.toFloat() / tot).coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text("$cur / $tot", color = ReliquaryMuted, fontSize = 12.sp)
             }
 
             val tags = parseTags(current.tags)
