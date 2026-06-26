@@ -44,7 +44,7 @@ import com.reliquary.app.ui.settings.CustomTabsScreen
 import com.reliquary.app.ui.settings.SettingsScreen
 import com.reliquary.app.ui.sync.SyncScreen
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryRed
+import com.reliquary.app.ui.theme.ReliquaryTeal
 
 @Composable
 fun ReliquaryApp(container: AppContainer) {
@@ -120,7 +120,7 @@ private fun TopNav(
         }
         Text(
             text = "THE RELIQUARY",
-            color = ReliquaryRed,
+            color = ReliquaryTeal,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 19.sp,
             modifier = Modifier.clickable { navigator.resetTo(Screen.Library) },

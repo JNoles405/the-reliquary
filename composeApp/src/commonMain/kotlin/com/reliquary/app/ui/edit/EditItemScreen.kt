@@ -34,7 +34,7 @@ import com.reliquary.app.domain.MediaType
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryRed
+import com.reliquary.app.ui.theme.ReliquaryTeal
 
 @Composable
 fun EditItemScreen(
@@ -124,7 +124,7 @@ fun EditItemScreen(
             PillButton(
                 label = "Save",
                 icon = Icons.Filled.Check,
-                background = ReliquaryRed,
+                background = ReliquaryTeal,
                 foreground = MaterialTheme.colorScheme.onBackground,
                 onClick = { save() },
             )

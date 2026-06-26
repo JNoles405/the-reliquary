@@ -119,7 +119,7 @@ private fun Hero(
         } else {
             Box(
                 Modifier.fillMaxSize().background(
-                    Brush.linearGradient(listOf(Color(0xFF3A1C1C), Color(0xFF141414))),
+                    Brush.linearGradient(listOf(Color(0xFF0F3631), Color(0xFF0E1413))),
                 ),
             )
         }

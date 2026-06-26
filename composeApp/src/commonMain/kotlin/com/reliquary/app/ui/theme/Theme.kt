@@ -6,18 +6,19 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Netflix-inspired palette: near-black canvas, signature red accent.
-val ReliquaryRed = Color(0xFFE50914)
-val ReliquaryBlack = Color(0xFF141414)
-val ReliquarySurface = Color(0xFF1F1F1F)
-val ReliquarySurfaceVariant = Color(0xFF2A2A2A)
-val ReliquaryOnDark = Color(0xFFF5F5F5)
-val ReliquaryMuted = Color(0xFFB3B3B3)
+// Cinematic dark palette with a teal accent: near-black, faintly teal-tinted
+// canvas and surfaces, with a vivid teal for accents and highlights.
+val ReliquaryTeal = Color(0xFF14B8A6)
+val ReliquaryBlack = Color(0xFF0E1413)
+val ReliquarySurface = Color(0xFF16201E)
+val ReliquarySurfaceVariant = Color(0xFF22302D)
+val ReliquaryOnDark = Color(0xFFF2F5F4)
+val ReliquaryMuted = Color(0xFF9DB2AD)
 
 private val ReliquaryColors = darkColorScheme(
-    primary = ReliquaryRed,
-    onPrimary = ReliquaryOnDark,
-    secondary = ReliquaryRed,
+    primary = ReliquaryTeal,
+    onPrimary = Color(0xFF00201C),
+    secondary = ReliquaryTeal,
     background = ReliquaryBlack,
     onBackground = ReliquaryOnDark,
     surface = ReliquarySurface,

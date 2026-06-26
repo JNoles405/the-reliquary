@@ -40,7 +40,7 @@ import com.reliquary.app.sync.writeTextFile
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryRed
+import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,7 +79,7 @@ fun SyncScreen(container: AppContainer, navigator: Navigator) {
             PillButton(
                 label = "Export",
                 icon = Icons.Filled.Upload,
-                background = ReliquaryRed,
+                background = ReliquaryTeal,
                 foreground = Color.White,
             ) {
                 if (busy) return@PillButton
@@ -151,7 +151,7 @@ private fun LocalNetworkSection(container: AppContainer) {
             PillButton(
                 label = if (hosting) "Stop hosting" else "Host on this device",
                 icon = null,
-                background = if (hosting) MaterialTheme.colorScheme.surfaceVariant else ReliquaryRed,
+                background = if (hosting) MaterialTheme.colorScheme.surfaceVariant else ReliquaryTeal,
                 foreground = if (hosting) MaterialTheme.colorScheme.onBackground else Color.White,
             ) {
                 if (hosting) {
@@ -164,7 +164,7 @@ private fun LocalNetworkSection(container: AppContainer) {
             }
             if (hosting) {
                 val where = if (myIps.isEmpty()) "this device" else myIps.joinToString(", ")
-                Text("Listening on $where  (port $LAN_SYNC_PORT)", color = ReliquaryRed, fontSize = 13.sp)
+                Text("Listening on $where  (port $LAN_SYNC_PORT)", color = ReliquaryTeal, fontSize = 13.sp)
                 Text("Enter that address on your other device to sync.", color = ReliquaryMuted, fontSize = 12.sp)
             }
 
@@ -179,7 +179,7 @@ private fun LocalNetworkSection(container: AppContainer) {
             PillButton(
                 label = "Connect & sync",
                 icon = null,
-                background = if (hostAddress.isBlank()) MaterialTheme.colorScheme.surfaceVariant else ReliquaryRed,
+                background = if (hostAddress.isBlank()) MaterialTheme.colorScheme.surfaceVariant else ReliquaryTeal,
                 foreground = Color.White,
             ) {
                 if (lanBusy || hostAddress.isBlank()) return@PillButton

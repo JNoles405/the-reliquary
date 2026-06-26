@@ -3,9 +3,9 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Reliquary "gem": a red diamond with a white facet, in the adaptive safe zone. -->
+    <!-- Reliquary "gem": a teal diamond with a white facet, in the adaptive safe zone. -->
     <path
-        android:fillColor="#E50914"
+        android:fillColor="#14B8A6"
         android:pathData="M54,30 L80,54 L54,84 L28,54 Z" />
     <path
         android:fillColor="#FFFFFF"

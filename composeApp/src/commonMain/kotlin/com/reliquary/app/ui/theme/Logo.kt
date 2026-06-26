@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
-/** The Reliquary mark — a red gem with a white facet. Used as the desktop window icon. */
+/** The Reliquary mark — a teal gem with a white facet. Used as the desktop window icon. */
 val ReliquaryLogo: ImageVector by lazy {
     ImageVector.Builder(
         name = "ReliquaryLogo",
@@ -15,7 +15,7 @@ val ReliquaryLogo: ImageVector by lazy {
         viewportWidth = 108f,
         viewportHeight = 108f,
     ).apply {
-        path(fill = SolidColor(Color(0xFFE50914))) {
+        path(fill = SolidColor(Color(0xFF14B8A6))) {
             moveTo(54f, 16f); lineTo(92f, 54f); lineTo(54f, 92f); lineTo(16f, 54f); close()
         }
         path(fill = SolidColor(Color(0xFFFFFFFF))) {

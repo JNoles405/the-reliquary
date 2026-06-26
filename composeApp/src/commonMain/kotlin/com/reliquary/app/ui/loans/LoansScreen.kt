@@ -30,7 +30,7 @@ import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryRed
+import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 
 @Composable
@@ -71,7 +71,7 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
                     PillButton(
                         label = "Return",
                         icon = null,
-                        background = ReliquaryRed,
+                        background = ReliquaryTeal,
                         foreground = MaterialTheme.colorScheme.onBackground,
                     ) { container.repository.markLoanReturned(loan.id) }
                 }

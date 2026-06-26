@@ -41,7 +41,7 @@ import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.util.formatDate
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryRed
+import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 
 @Composable
@@ -72,7 +72,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
             } else {
                 Box(
                     Modifier.fillMaxSize().background(
-                        Brush.linearGradient(listOf(Color(0xFF3A1C1C), Color(0xFF141414))),
+                        Brush.linearGradient(listOf(Color(0xFF0F3631), Color(0xFF0E1413))),
                     ),
                 )
             }
@@ -87,7 +87,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
             Column(Modifier.align(Alignment.BottomStart).padding(24.dp)) {
                 if (activeLoan != null) {
                     Box(
-                        Modifier.clip(RoundedCornerShape(4.dp)).background(ReliquaryRed)
+                        Modifier.clip(RoundedCornerShape(4.dp)).background(ReliquaryTeal)
                             .padding(horizontal = 8.dp, vertical = 3.dp),
                     ) {
                         Text("ON LOAN", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -142,7 +142,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 val due = activeLoan.dueAt?.let { " · due ${formatDate(it)}" } ?: ""
                 Text(
                     "Loaned to ${borrowerName ?: "someone"}$due",
-                    color = ReliquaryRed,
+                    color = ReliquaryTeal,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                 )

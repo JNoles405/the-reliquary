@@ -37,7 +37,7 @@ import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryRed
+import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 
 @Composable
@@ -133,7 +133,7 @@ private fun KeySection(
                 Spacer(Modifier.height(0.dp))
                 Text(
                     text = if (active) "   ● Active" else "   ○ Not set",
-                    color = if (active) ReliquaryRed else ReliquaryMuted,
+                    color = if (active) ReliquaryTeal else ReliquaryMuted,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -155,7 +155,7 @@ private fun KeySection(
             PillButton(
                 label = "Save",
                 icon = Icons.Filled.Check,
-                background = ReliquaryRed,
+                background = ReliquaryTeal,
                 foreground = Color.White,
             ) {
                 onSave(values.mapValues { it.value.value.trim() })

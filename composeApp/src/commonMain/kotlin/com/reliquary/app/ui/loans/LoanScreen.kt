@@ -39,7 +39,7 @@ import com.reliquary.app.domain.Person
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryRed
+import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import com.reliquary.app.util.DAY_MILLIS
@@ -95,7 +95,7 @@ private fun ActiveLoanCard(container: AppContainer, loan: Loan, onReturn: () -> 
     val borrower = remember(loan.personId) { container.repository.getPerson(loan.personId) }
     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
         Column {
-            Text("Currently on loan", color = ReliquaryRed, fontWeight = FontWeight.Bold)
+            Text("Currently on loan", color = ReliquaryTeal, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             Text("Borrower: ${borrower?.name ?: "Unknown"}", color = MaterialTheme.colorScheme.onBackground)
             Text("Loaned: ${formatDate(loan.loanedAt)}", color = ReliquaryMuted, fontSize = 13.sp)
@@ -103,7 +103,7 @@ private fun ActiveLoanCard(container: AppContainer, loan: Loan, onReturn: () -> 
                 val overdue = loan.isOverdue(nowMillis())
                 Text(
                     "Due: ${formatDate(it)}${if (overdue) "  (overdue)" else ""}",
-                    color = if (overdue) ReliquaryRed else ReliquaryMuted,
+                    color = if (overdue) ReliquaryTeal else ReliquaryMuted,
                     fontSize = 13.sp,
                 )
             }
@@ -111,7 +111,7 @@ private fun ActiveLoanCard(container: AppContainer, loan: Loan, onReturn: () -> 
             PillButton(
                 label = "Mark returned",
                 icon = null,
-                background = ReliquaryRed,
+                background = ReliquaryTeal,
                 foreground = Color.White,
                 onClick = onReturn,
             )
@@ -158,7 +158,7 @@ private fun NewLoanForm(people: List<Person>, onLoan: (name: String, days: Int) 
     PillButton(
         label = "Loan out",
         icon = null,
-        background = if (name.isBlank()) ReliquarySurfaceVariant else ReliquaryRed,
+        background = if (name.isBlank()) ReliquarySurfaceVariant else ReliquaryTeal,
         foreground = Color.White,
     ) { if (name.isNotBlank()) onLoan(name.trim(), days) }
 }
@@ -168,7 +168,7 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) ReliquaryRed else ReliquarySurfaceVariant)
+            .background(if (selected) ReliquaryTeal else ReliquarySurfaceVariant)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
