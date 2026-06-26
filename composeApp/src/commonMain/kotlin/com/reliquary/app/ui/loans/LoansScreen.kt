@@ -47,7 +47,10 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
     val soon = sorted.count { val d = dayDelta(it, now); d in 0..3 }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("On Loan", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("On Loan", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp, modifier = Modifier.weight(1f))
+            PillButton("People", null, ReliquarySurface, MaterialTheme.colorScheme.onBackground) { navigator.push(Screen.People) }
+        }
         if (sorted.isEmpty()) {
             Spacer(Modifier.height(12.dp))
             Text("Nothing is currently on loan.", color = ReliquaryMuted)

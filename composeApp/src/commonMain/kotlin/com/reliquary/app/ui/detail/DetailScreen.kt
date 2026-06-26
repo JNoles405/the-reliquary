@@ -268,6 +268,21 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 Text("Notes", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
             }
+
+            if (loans.isNotEmpty()) {
+                Spacer(Modifier.height(18.dp))
+                Text("Loan History", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(6.dp))
+                loans.forEach { loan ->
+                    val who = container.repository.getPerson(loan.personId)?.name ?: "Someone"
+                    val span = if (loan.returnedAt != null) {
+                        "${formatDate(loan.loanedAt)} → ${formatDate(loan.returnedAt)}"
+                    } else {
+                        "${formatDate(loan.loanedAt)} → out"
+                    }
+                    MetaRow(who, span)
+                }
+            }
         }
     }
 }

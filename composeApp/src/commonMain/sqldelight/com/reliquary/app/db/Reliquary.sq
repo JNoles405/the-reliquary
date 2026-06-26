@@ -165,6 +165,9 @@ SELECT * FROM loan WHERE deleted = 0 AND returned_at IS NULL AND item_id = :item
 selectLoansForItem:
 SELECT * FROM loan WHERE deleted = 0 AND item_id = :itemId ORDER BY loaned_at DESC;
 
+selectLoansForPerson:
+SELECT * FROM loan WHERE deleted = 0 AND person_id = :personId ORDER BY loaned_at DESC;
+
 upsertLoan:
 INSERT OR REPLACE INTO loan(id, item_id, person_id, loaned_at, due_at, returned_at, notes, updated_at, deleted)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
