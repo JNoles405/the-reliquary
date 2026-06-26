@@ -102,6 +102,8 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
     fun activeLoans(): Flow<List<Loan>> =
         q.selectActiveLoans().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
 
+    fun activeLoansNow(): List<Loan> = q.selectActiveLoans().executeAsList().map { it.toDomain() }
+
     fun loansForItem(itemId: String): Flow<List<Loan>> =
         q.selectLoansForItem(itemId).asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
 

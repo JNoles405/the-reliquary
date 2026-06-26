@@ -1,6 +1,8 @@
 package com.reliquary.app.ui.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.reliquary.app.data.nowMillis
+import com.reliquary.app.domain.Status
+import kotlinx.serialization.encodeToString
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -79,6 +84,16 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
     val providerExtras = allExtras.filter { it.first !in editionKeys && !it.first.startsWith("_") }
     val editionExtras = allExtras.filter { it.first in editionKeys }
     val backdrop = allExtras.firstOrNull { it.first == "_backdrop" }?.second
+    val currentStatus = allExtras.firstOrNull { it.first == Status.KEY }?.second
+
+    fun setStatus(value: String?) {
+        val map = current.extraJson
+            ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() }
+            ?.toMutableMap() ?: mutableMapOf()
+        if (value == null) map.remove(Status.KEY) else map[Status.KEY] = value
+        val json = if (map.isEmpty()) null else ReliquaryJson.encodeToString(map)
+        container.repository.upsertItem(current.copy(extraJson = json, updatedAt = nowMillis()))
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(420.dp)) {
@@ -168,6 +183,20 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 }
             }
 
+            Spacer(Modifier.height(16.dp))
+            Text("Status", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Status.optionsFor(current.mediaType).forEach { option ->
+                    StatusChip(option, selected = currentStatus == option) {
+                        setStatus(if (currentStatus == option) null else option)
+                    }
+                }
+            }
+
             if (activeLoan != null) {
                 Spacer(Modifier.height(16.dp))
                 val due = activeLoan.dueAt?.let { " · due ${formatDate(it)}" } ?: ""
@@ -210,6 +239,23 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun StatusChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(20.dp))
+            .background(if (selected) ReliquaryTeal else ReliquarySurfaceVariant)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    ) {
+        Text(
+            label,
+            color = if (selected) Color.Black else Color.White,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        )
     }
 }
 

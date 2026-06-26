@@ -44,8 +44,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.serialization.decodeFromString
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
+import com.reliquary.app.domain.Status
+import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.ActiveTab
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
@@ -83,16 +86,26 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     var sort by remember(active) { mutableStateOf(SortOrder.TITLE) }
     var favoritesOnly by remember(active) { mutableStateOf(false) }
     var onLoanOnly by remember(active) { mutableStateOf(false) }
+    var unfinishedOnly by remember(active) { mutableStateOf(false) }
     var genre by remember(active) { mutableStateOf<String?>(null) }
 
     val genres = remember(items) {
         items.flatMap { it.genres?.split(",").orEmpty() }
             .map { it.trim() }.filter { it.isNotBlank() }.distinct().sorted()
     }
-    val displayed = remember(items, sort, favoritesOnly, onLoanOnly, genre, onLoanIds) {
+    // Decode each item's status once per items change (status lives in hidden extras).
+    val statusById = remember(items) {
+        items.associate { item ->
+            item.id to item.extraJson
+                ?.let { json -> runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(json) }.getOrNull() }
+                ?.get(Status.KEY)
+        }
+    }
+    val displayed = remember(items, sort, favoritesOnly, onLoanOnly, unfinishedOnly, genre, onLoanIds, statusById) {
         items.filter { item ->
             (!favoritesOnly || item.favorite) &&
                 (!onLoanOnly || item.id in onLoanIds) &&
+                (!unfinishedOnly || statusById[item.id] !in Status.DONE) &&
                 (genre == null || item.genres?.contains(genre!!, ignoreCase = true) == true)
         }.sortedWith(sort.comparator())
     }
@@ -129,10 +142,11 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     sort = sort, onSort = { sort = it },
                     favoritesOnly = favoritesOnly, onFavorites = { favoritesOnly = !favoritesOnly },
                     onLoanOnly = onLoanOnly, onLoan = { onLoanOnly = !onLoanOnly },
+                    unfinishedOnly = unfinishedOnly, onUnfinished = { unfinishedOnly = !unfinishedOnly },
                     genres = genres, genre = genre, onGenre = { genre = it },
                 )
             }
-            val showShelves = !favoritesOnly && !onLoanOnly && genre == null
+            val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && genre == null
             if (showShelves) {
                 val recent = items.sortedByDescending { it.addedAt }.take(12)
                 val favorites = items.filter { it.favorite }
@@ -187,6 +201,8 @@ private fun Controls(
     onFavorites: () -> Unit,
     onLoanOnly: Boolean,
     onLoan: () -> Unit,
+    unfinishedOnly: Boolean,
+    onUnfinished: () -> Unit,
     genres: List<String>,
     genre: String?,
     onGenre: (String?) -> Unit,
@@ -203,6 +219,7 @@ private fun Controls(
         }
         FilterChip("Favorites", favoritesOnly, onFavorites)
         FilterChip("On loan", onLoanOnly, onLoan)
+        FilterChip("Unfinished", unfinishedOnly, onUnfinished)
         if (genres.isNotEmpty()) {
             MenuChip(genre?.let { "Genre: $it" } ?: "Genre") { dismiss ->
                 DropdownMenuItem(text = { Text("All genres") }, onClick = { onGenre(null); dismiss() })

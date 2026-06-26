@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.ui.detail.DetailScreen
@@ -54,6 +55,8 @@ fun ReliquaryApp(container: AppContainer) {
     val navigator = rememberNavigator()
     var activeTab by remember { mutableStateOf<ActiveTab>(ActiveTab.Builtin(MediaType.MOVIES)) }
     val customTabs by remember { container.repository.customTabs() }.collectAsState(emptyList())
+    val activeLoans by remember { container.repository.activeLoans() }.collectAsState(emptyList())
+    val overdueCount = activeLoans.count { it.dueAt != null && it.dueAt < nowMillis() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -72,6 +75,7 @@ fun ReliquaryApp(container: AppContainer) {
                 },
                 onManageTabs = { navigator.push(Screen.CustomTabs) },
                 onSettings = { navigator.push(Screen.Settings) },
+                overdueCount = overdueCount,
             )
         },
     ) { padding ->
@@ -104,6 +108,7 @@ private fun TopNav(
     onSelectCustom: (com.reliquary.app.domain.CustomTab) -> Unit,
     onManageTabs: () -> Unit,
     onSettings: () -> Unit,
+    overdueCount: Int,
 ) {
     val onLibrary = navigator.current == Screen.Library
     Row(
@@ -148,7 +153,8 @@ private fun TopNav(
                     modifier = Modifier.size(18.dp),
                 )
             }
-            TabLabel("Loans", navigator.current == Screen.Loans) { navigator.resetTo(Screen.Loans) }
+            val loansLabel = if (overdueCount > 0) "Loans ($overdueCount)" else "Loans"
+            TabLabel(loansLabel, navigator.current == Screen.Loans) { navigator.resetTo(Screen.Loans) }
         }
         IconButton(onClick = { navigator.push(Screen.Search) }) {
             Icon(
