@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.EDITION_FIELDS
+import com.reliquary.app.domain.VALUE_FIELDS
+import com.reliquary.app.domain.WANTED_KEY
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
@@ -81,19 +83,27 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
             ?.toList().orEmpty()
     }
     val editionKeys = remember { EDITION_FIELDS.toSet() }
-    val providerExtras = allExtras.filter { it.first !in editionKeys && !it.first.startsWith("_") }
+    val valueKeys = remember { VALUE_FIELDS.toSet() }
+    val providerExtras = allExtras.filter {
+        it.first !in editionKeys && it.first !in valueKeys && !it.first.startsWith("_")
+    }
     val editionExtras = allExtras.filter { it.first in editionKeys }
+    val valueExtras = allExtras.filter { it.first in valueKeys }
     val backdrop = allExtras.firstOrNull { it.first == "_backdrop" }?.second
     val currentStatus = allExtras.firstOrNull { it.first == Status.KEY }?.second
+    val isWanted = allExtras.firstOrNull { it.first == WANTED_KEY }?.second == "true"
 
-    fun setStatus(value: String?) {
+    fun updateExtras(mutate: (MutableMap<String, String>) -> Unit) {
         val map = current.extraJson
             ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() }
             ?.toMutableMap() ?: mutableMapOf()
-        if (value == null) map.remove(Status.KEY) else map[Status.KEY] = value
+        mutate(map)
         val json = if (map.isEmpty()) null else ReliquaryJson.encodeToString(map)
         container.repository.upsertItem(current.copy(extraJson = json, updatedAt = nowMillis()))
     }
+
+    fun setStatus(value: String?) = updateExtras { if (value == null) it.remove(Status.KEY) else it[Status.KEY] = value }
+    fun setWanted(value: Boolean) = updateExtras { if (value) it[WANTED_KEY] = "true" else it.remove(WANTED_KEY) }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(420.dp)) {
@@ -116,12 +126,17 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 ),
             )
             Column(Modifier.align(Alignment.BottomStart).padding(24.dp)) {
-                if (activeLoan != null) {
+                val badge = when {
+                    isWanted -> "WISHLIST"
+                    activeLoan != null -> "ON LOAN"
+                    else -> null
+                }
+                if (badge != null) {
                     Box(
                         Modifier.clip(RoundedCornerShape(4.dp)).background(ReliquaryTeal)
                             .padding(horizontal = 8.dp, vertical = 3.dp),
                     ) {
-                        Text("ON LOAN", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(badge, color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(8.dp))
                 }
@@ -195,6 +210,9 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                         setStatus(if (currentStatus == option) null else option)
                     }
                 }
+                StatusChip(if (isWanted) "On wishlist ✓" else "Wishlist", selected = isWanted) {
+                    setWanted(!isWanted)
+                }
             }
 
             if (activeLoan != null) {
@@ -231,6 +249,18 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 )
                 Spacer(Modifier.height(6.dp))
                 editionExtras.forEach { (label, value) -> MetaRow(label, value) }
+            }
+
+            if (valueExtras.isNotEmpty()) {
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    "Purchase & Value",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                )
+                Spacer(Modifier.height(6.dp))
+                valueExtras.forEach { (label, value) -> MetaRow(label, value) }
             }
 
             current.notes?.takeIf { it.isNotBlank() }?.let {

@@ -32,6 +32,8 @@ import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.MediaType
+import com.reliquary.app.domain.VALUE_FIELDS
+import com.reliquary.app.domain.WANTED_KEY
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
@@ -74,16 +76,22 @@ fun EditItemScreen(
     val editionStates = remember(itemId) {
         EDITION_FIELDS.associateWith { mutableStateOf(existingExtras[it] ?: "") }
     }
+    val valueStates = remember(itemId) {
+        VALUE_FIELDS.associateWith { mutableStateOf(existingExtras[it] ?: "") }
+    }
+    var wanted by remember(itemId) { mutableStateOf(existingExtras[WANTED_KEY] == "true") }
 
     fun save() {
         if (title.isBlank()) return
         val now = nowMillis()
         // Merge edited edition fields into existing extras without losing provider data.
         val extras = existingExtras.toMutableMap()
-        EDITION_FIELDS.forEach { key ->
-            val value = editionStates.getValue(key).value.trim()
+        (EDITION_FIELDS + VALUE_FIELDS).forEach { key ->
+            val state = editionStates[key] ?: valueStates[key]
+            val value = state?.value?.trim().orEmpty()
             if (value.isBlank()) extras.remove(key) else extras[key] = value
         }
+        if (wanted) extras[WANTED_KEY] = "true" else extras.remove(WANTED_KEY)
         val mergedExtraJson = if (extras.isEmpty()) null else ReliquaryJson.encodeToString(extras)
         val item = CollectionItem(
             id = existing?.id ?: newId(),
@@ -146,10 +154,24 @@ fun EditItemScreen(
             Field(key, state.value) { state.value = it }
         }
 
+        Text(
+            "Purchase & value",
+            color = ReliquaryMuted,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        VALUE_FIELDS.forEach { key ->
+            val state = valueStates.getValue(key)
+            Field(key, state.value) { state.value = it }
+        }
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Switch(checked = favorite, onCheckedChange = { favorite = it })
-            Spacer(Modifier.height(0.dp))
             Text("  Favorite", color = MaterialTheme.colorScheme.onBackground)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = wanted, onCheckedChange = { wanted = it })
+            Text("  On wishlist (wanted, not owned)", color = MaterialTheme.colorScheme.onBackground)
         }
 
         Spacer(Modifier.height(4.dp))

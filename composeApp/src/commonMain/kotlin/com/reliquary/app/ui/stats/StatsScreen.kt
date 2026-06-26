@@ -28,7 +28,10 @@ import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.domain.Status
+import com.reliquary.app.domain.WANTED_KEY
+import com.reliquary.app.domain.parseMoney
 import com.reliquary.app.metadata.ReliquaryJson
+import kotlin.math.round
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryTeal
@@ -43,18 +46,23 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     val loans = remember { container.repository.activeLoansNow() }
     val now = remember { nowMillis() }
 
-    val total = items.size
-    val favorites = items.count { it.favorite }
-    val overdue = loans.count { it.dueAt != null && it.dueAt < now }
-    val finished = remember(items) {
-        items.count { item ->
-            val status = item.extraJson
+    val decoded = remember(items) {
+        items.map { item ->
+            item to (item.extraJson
                 ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() }
-                ?.get(Status.KEY)
-            status in Status.DONE
+                ?: emptyMap())
         }
     }
-    val finishedPct = if (total > 0) finished * 100 / total else 0
+    val total = items.size
+    val wanted = decoded.count { it.second[WANTED_KEY] == "true" }
+    val owned = total - wanted
+    val favorites = items.count { it.favorite }
+    val overdue = loans.count { it.dueAt != null && it.dueAt < now }
+    val finished = decoded.count { it.second[WANTED_KEY] != "true" && it.second[Status.KEY] in Status.DONE }
+    val finishedPct = if (owned > 0) finished * 100 / owned else 0
+    val collectionValue = decoded
+        .filter { it.second[WANTED_KEY] != "true" }
+        .sumOf { parseMoney(it.second["Current Value"]) ?: 0.0 }
 
     val typeCounts = MediaType.entries.map { it.displayName to items.count { i -> i.mediaType == it.name } }
         .toMutableList()
@@ -67,11 +75,15 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
         Spacer(Modifier.height(16.dp))
 
         FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard("Total items", total.toString())
+            StatCard("Owned", owned.toString())
+            StatCard("Wishlist", wanted.toString())
             StatCard("Finished", "$finished ($finishedPct%)")
             StatCard("Favorites", favorites.toString())
             StatCard("On loan", loans.size.toString())
             StatCard("Overdue", overdue.toString())
+            if (collectionValue > 0) {
+                StatCard("Collection value", "$" + (round(collectionValue * 100) / 100.0))
+            }
         }
 
         Spacer(Modifier.height(24.dp))

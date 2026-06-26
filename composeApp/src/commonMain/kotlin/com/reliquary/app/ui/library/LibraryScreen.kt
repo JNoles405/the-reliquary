@@ -48,6 +48,7 @@ import kotlinx.serialization.decodeFromString
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.Status
+import com.reliquary.app.domain.WANTED_KEY
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.ActiveTab
 import com.reliquary.app.ui.Navigator
@@ -87,25 +88,29 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     var favoritesOnly by remember(active) { mutableStateOf(false) }
     var onLoanOnly by remember(active) { mutableStateOf(false) }
     var unfinishedOnly by remember(active) { mutableStateOf(false) }
+    var wishlistOnly by remember(active) { mutableStateOf(false) }
     var genre by remember(active) { mutableStateOf<String?>(null) }
 
     val genres = remember(items) {
         items.flatMap { it.genres?.split(",").orEmpty() }
             .map { it.trim() }.filter { it.isNotBlank() }.distinct().sorted()
     }
-    // Decode each item's status once per items change (status lives in hidden extras).
-    val statusById = remember(items) {
+    // Decode each item's hidden extras once per items change (status, wanted flag).
+    val extrasById = remember(items) {
         items.associate { item ->
-            item.id to item.extraJson
+            item.id to (item.extraJson
                 ?.let { json -> runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(json) }.getOrNull() }
-                ?.get(Status.KEY)
+                ?: emptyMap())
         }
     }
-    val displayed = remember(items, sort, favoritesOnly, onLoanOnly, unfinishedOnly, genre, onLoanIds, statusById) {
+    val displayed = remember(items, sort, favoritesOnly, onLoanOnly, unfinishedOnly, wishlistOnly, genre, onLoanIds, extrasById) {
         items.filter { item ->
-            (!favoritesOnly || item.favorite) &&
+            val extras = extrasById[item.id].orEmpty()
+            val isWanted = extras[WANTED_KEY] == "true"
+            (if (wishlistOnly) isWanted else !isWanted) &&
+                (!favoritesOnly || item.favorite) &&
                 (!onLoanOnly || item.id in onLoanIds) &&
-                (!unfinishedOnly || statusById[item.id] !in Status.DONE) &&
+                (!unfinishedOnly || extras[Status.KEY] !in Status.DONE) &&
                 (genre == null || item.genres?.contains(genre!!, ignoreCase = true) == true)
         }.sortedWith(sort.comparator())
     }
@@ -143,14 +148,16 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     favoritesOnly = favoritesOnly, onFavorites = { favoritesOnly = !favoritesOnly },
                     onLoanOnly = onLoanOnly, onLoan = { onLoanOnly = !onLoanOnly },
                     unfinishedOnly = unfinishedOnly, onUnfinished = { unfinishedOnly = !unfinishedOnly },
+                    wishlistOnly = wishlistOnly, onWishlist = { wishlistOnly = !wishlistOnly },
                     genres = genres, genre = genre, onGenre = { genre = it },
                 )
             }
-            val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && genre == null
+            val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && !wishlistOnly && genre == null
             if (showShelves) {
-                val recent = items.sortedByDescending { it.addedAt }.take(12)
-                val favorites = items.filter { it.favorite }
-                val loaned = items.filter { it.id in onLoanIds }
+                val owned = items.filter { extrasById[it.id]?.get(WANTED_KEY) != "true" }
+                val recent = owned.sortedByDescending { it.addedAt }.take(12)
+                val favorites = owned.filter { it.favorite }
+                val loaned = owned.filter { it.id in onLoanIds }
                 if (recent.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Shelf("Recently Added", recent) { navigator.push(Screen.Detail(it)) }
@@ -203,6 +210,8 @@ private fun Controls(
     onLoan: () -> Unit,
     unfinishedOnly: Boolean,
     onUnfinished: () -> Unit,
+    wishlistOnly: Boolean,
+    onWishlist: () -> Unit,
     genres: List<String>,
     genre: String?,
     onGenre: (String?) -> Unit,
@@ -220,6 +229,7 @@ private fun Controls(
         FilterChip("Favorites", favoritesOnly, onFavorites)
         FilterChip("On loan", onLoanOnly, onLoan)
         FilterChip("Unfinished", unfinishedOnly, onUnfinished)
+        FilterChip("Wishlist", wishlistOnly, onWishlist)
         if (genres.isNotEmpty()) {
             MenuChip(genre?.let { "Genre: $it" } ?: "Genre") { dismiss ->
                 DropdownMenuItem(text = { Text("All genres") }, onClick = { onGenre(null); dismiss() })
