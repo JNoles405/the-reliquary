@@ -12,7 +12,12 @@ import io.ktor.client.statement.bodyAsText
  */
 class UpcLookup(private val client: HttpClient) {
 
-    data class Product(val title: String, val imageUrl: String?)
+    data class Product(
+        val title: String,
+        val imageUrl: String?,
+        val description: String? = null,
+        val brand: String? = null,
+    )
 
     suspend fun lookup(barcode: String): Product? {
         val code = barcode.filter { it.isDigit() }
@@ -24,6 +29,11 @@ class UpcLookup(private val client: HttpClient) {
         val item = root.array("items")?.firstOrNull()?.obj() ?: return null
         val title = item.string("title")?.takeIf { it.isNotBlank() } ?: return null
         val image = item.array("images")?.strings()?.firstOrNull { it.startsWith("http") }
-        return Product(title, image)
+        return Product(
+            title = title,
+            imageUrl = image,
+            description = item.string("description")?.takeIf { it.isNotBlank() },
+            brand = item.string("brand")?.takeIf { it.isNotBlank() },
+        )
     }
 }

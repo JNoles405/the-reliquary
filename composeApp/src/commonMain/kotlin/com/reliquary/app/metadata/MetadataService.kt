@@ -49,6 +49,8 @@ class MetadataService(
                 providerName = "Barcode lookup",
                 mediaType = type,
                 title = fallbackTitle,
+                creators = product.brand,
+                description = product.description,
                 coverUrl = product.imageUrl,
                 identifierType = "UPC",
                 identifier = barcode,
