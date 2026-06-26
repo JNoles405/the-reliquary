@@ -31,8 +31,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.horizontalScroll
+import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.sync.LAN_SYNC_PORT
+import com.reliquary.app.util.formatDate
 import com.reliquary.app.sync.defaultSyncFilePath
 import com.reliquary.app.sync.localIpAddresses
 import com.reliquary.app.sync.readTextFile
@@ -74,7 +77,10 @@ fun SyncScreen(container: AppContainer, navigator: Navigator) {
             label = { Text("Sync file path") },
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             PillButton(
                 label = "Export",
                 icon = Icons.Filled.Upload,
@@ -90,6 +96,28 @@ fun SyncScreen(container: AppContainer, navigator: Navigator) {
                         withContext(Dispatchers.Default) { writeTextFile(path, json) }
                         "Exported library to:\n$path"
                     }.getOrElse { "Export failed: ${it.message}" }
+                    busy = false
+                }
+            }
+            PillButton(
+                label = "Backup now",
+                icon = null,
+                background = MaterialTheme.colorScheme.surfaceVariant,
+                foreground = MaterialTheme.colorScheme.onBackground,
+            ) {
+                if (busy) return@PillButton
+                busy = true
+                status = null
+                scope.launch {
+                    status = runCatching {
+                        val backupPath = path.replace(
+                            Regex("[^/\\\\]*$"),
+                            "reliquary-backup-${formatDate(nowMillis())}.json",
+                        )
+                        val json = withContext(Dispatchers.Default) { container.syncService.exportJson() }
+                        withContext(Dispatchers.Default) { writeTextFile(backupPath, json) }
+                        "Backup saved to:\n$backupPath"
+                    }.getOrElse { "Backup failed: ${it.message}" }
                     busy = false
                 }
             }

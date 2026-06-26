@@ -177,9 +177,15 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
             val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && !wishlistOnly && genre == null
             if (showShelves) {
                 val owned = items.filter { !it.wanted }
+                val continueItems = owned.filter { it.status in Status.IN_PROGRESS }
                 val recent = owned.sortedByDescending { it.addedAt }.take(12)
                 val favorites = owned.filter { it.favorite }
                 val loaned = owned.filter { it.id in onLoanIds }
+                if (continueItems.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Shelf("Continue", continueItems) { navigator.push(Screen.Detail(it)) }
+                    }
+                }
                 if (recent.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Shelf("Recently Added", recent) { navigator.push(Screen.Detail(it)) }

@@ -18,4 +18,7 @@ object Status {
 
     /** Statuses that count as "finished" — used by the Unfinished library filter. */
     val DONE: Set<String> = setOf("Watched", "Read", "Listened", "Completed", "Played", "Done")
+
+    /** Statuses that mean "in progress" — used by the Continue shelf. */
+    val IN_PROGRESS: Set<String> = setOf("Watching", "Reading", "Playing", "In progress")
 }

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -58,6 +59,7 @@ import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.util.formatDate
+import com.reliquary.app.util.openUrl
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import kotlin.math.round
@@ -167,7 +169,10 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
         }
 
         Column(Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 PillButton(
                     label = if (activeLoan == null) "Loan out" else "Manage loan",
                     icon = Icons.Filled.People,
@@ -181,6 +186,16 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                     foreground = MaterialTheme.colorScheme.onBackground,
                 ) {
                     navigator.push(Screen.EditItem(current.id, current.mediaType, current.customTabId))
+                }
+                PillButton(
+                    label = "Trailer",
+                    icon = Icons.Filled.PlayCircle,
+                    background = ReliquarySurfaceVariant,
+                    foreground = MaterialTheme.colorScheme.onBackground,
+                ) {
+                    val q = listOfNotNull(current.title, current.releaseYear?.toString(), "trailer")
+                        .joinToString(" ").replace(" ", "+")
+                    openUrl("https://www.youtube.com/results?search_query=$q")
                 }
                 PillButton(
                     label = "Delete",
