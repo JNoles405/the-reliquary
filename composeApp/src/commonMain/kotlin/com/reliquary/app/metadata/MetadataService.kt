@@ -21,15 +21,19 @@ class MetadataService(
     fun hasProviderFor(type: MediaType): Boolean = providersFor(type).isNotEmpty()
 
     suspend fun search(type: MediaType, query: String): List<MetadataResult> =
-        providersFor(type).flatMap { provider ->
-            runCatching { provider.search(query) }.getOrElse { emptyList() }
-        }
+        dedupe(
+            providersFor(type).flatMap { provider ->
+                runCatching { provider.search(query) }.getOrElse { emptyList() }
+            },
+        )
 
     suspend fun lookupByBarcode(type: MediaType, barcode: String): List<MetadataResult> {
         // 1) Providers that index this barcode directly (books by ISBN, music by barcode).
-        val direct = providersFor(type).flatMap { provider ->
-            runCatching { provider.lookupByBarcode(barcode) }.getOrElse { emptyList() }
-        }
+        val direct = dedupe(
+            providersFor(type).flatMap { provider ->
+                runCatching { provider.lookupByBarcode(barcode) }.getOrElse { emptyList() }
+            },
+        )
         if (direct.isNotEmpty()) return direct
 
         // 2) Resolve the retail UPC to a product name, then search by that title.
@@ -57,6 +61,33 @@ class MetadataService(
             ),
         )
     }
+
+    /**
+     * Collapse the same title coming from multiple providers (e.g. a movie from
+     * both TMDB and OMDb) into one entry, keeping the richest version. Order of
+     * first appearance is preserved.
+     */
+    private fun dedupe(results: List<MetadataResult>): List<MetadataResult> {
+        if (results.size < 2) return results
+        val byKey = LinkedHashMap<String, MetadataResult>()
+        for (result in results) {
+            val key = dedupeKey(result)
+            val existing = byKey[key]
+            if (existing == null || richness(result) > richness(existing)) {
+                byKey[key] = result
+            }
+        }
+        return byKey.values.toList()
+    }
+
+    private fun dedupeKey(r: MetadataResult): String {
+        val title = r.title.lowercase().filter { it.isLetterOrDigit() }
+        return if (r.releaseYear != null) "$title|${r.releaseYear}" else title
+    }
+
+    private fun richness(r: MetadataResult): Int =
+        listOf(r.description, r.coverUrl, r.genres, r.creators, r.releaseYear?.toString())
+            .count { !it.isNullOrBlank() }
 
     /** Strip format/edition noise so a retail product title can match a title database. */
     private fun cleanProductTitle(raw: String): String {
