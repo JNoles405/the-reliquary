@@ -76,13 +76,15 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
             ?.toList().orEmpty()
     }
     val editionKeys = remember { EDITION_FIELDS.toSet() }
-    val providerExtras = allExtras.filter { it.first !in editionKeys }
+    val providerExtras = allExtras.filter { it.first !in editionKeys && !it.first.startsWith("_") }
     val editionExtras = allExtras.filter { it.first in editionKeys }
+    val backdrop = allExtras.firstOrNull { it.first == "_backdrop" }?.second
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(420.dp)) {
-            if (current.coverImage != null) {
-                CoverImage(current.coverImage, current.title, Modifier.fillMaxSize())
+            val heroImage = backdrop ?: current.coverImage
+            if (heroImage != null) {
+                CoverImage(heroImage, current.title, Modifier.fillMaxSize())
             } else {
                 Box(
                     Modifier.fillMaxSize().background(

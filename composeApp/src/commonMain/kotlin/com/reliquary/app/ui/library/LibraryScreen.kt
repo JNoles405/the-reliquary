@@ -132,6 +132,36 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     genres = genres, genre = genre, onGenre = { genre = it },
                 )
             }
+            val showShelves = !favoritesOnly && !onLoanOnly && genre == null
+            if (showShelves) {
+                val recent = items.sortedByDescending { it.addedAt }.take(12)
+                val favorites = items.filter { it.favorite }
+                val loaned = items.filter { it.id in onLoanIds }
+                if (recent.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Shelf("Recently Added", recent) { navigator.push(Screen.Detail(it)) }
+                    }
+                }
+                if (favorites.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Shelf("Favorites", favorites) { navigator.push(Screen.Detail(it)) }
+                    }
+                }
+                if (loaned.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Shelf("On Loan", loaned) { navigator.push(Screen.Detail(it)) }
+                    }
+                }
+            }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    text = "All ${active.title}",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+                )
+            }
             if (displayed.isEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
@@ -290,6 +320,45 @@ private fun Hero(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun Shelf(title: String, items: List<CollectionItem>, onItemClick: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+        )
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items.forEach { item -> ShelfCard(item) { onItemClick(item.id) } }
+        }
+    }
+}
+
+@Composable
+private fun ShelfCard(item: CollectionItem, onClick: () -> Unit) {
+    Column(Modifier.width(120.dp).clickable(onClick = onClick)) {
+        CoverImage(
+            url = item.coverImage,
+            contentDescription = item.title,
+            modifier = Modifier.width(120.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)),
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = item.title,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

@@ -89,6 +89,8 @@ class TmdbProvider(
             language?.let { put("Language", it) }
             root.string("tagline")?.takeIf { it.isNotBlank() }?.let { put("Tagline", it) }
             cast?.let { put("Cast", it) }
+            // Hidden key (leading underscore) — a wide landscape image for the hero.
+            root.string("backdrop_path")?.let { put("_backdrop", "https://image.tmdb.org/t/p/w1280$it") }
         }
 
         return result.copy(
