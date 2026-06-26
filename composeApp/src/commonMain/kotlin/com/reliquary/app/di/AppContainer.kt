@@ -6,6 +6,7 @@ import com.reliquary.app.db.ReliquaryDatabase
 import com.reliquary.app.images.CoverCache
 import com.reliquary.app.metadata.ApiKeyStore
 import com.reliquary.app.metadata.MetadataService
+import com.reliquary.app.metadata.UpcLookup
 import com.reliquary.app.metadata.providers.ComicVineProvider
 import com.reliquary.app.metadata.providers.DiscogsProvider
 import com.reliquary.app.metadata.providers.GoogleBooksProvider
@@ -44,5 +45,6 @@ class AppContainer(driver: SqlDriver) {
             ComicVineProvider(httpClient, apiKeyStore),
             IgdbProvider(httpClient, apiKeyStore),
         ),
+        upcLookup = UpcLookup(httpClient),
     )
 }

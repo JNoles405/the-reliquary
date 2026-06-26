@@ -64,11 +64,13 @@ fun SearchImportScreen(
     var loading by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<MetadataResult>>(emptyList()) }
     var message by remember { mutableStateOf<String?>(null) }
+    var lastBarcode by remember { mutableStateOf<String?>(null) }
     val hasProviders = container.metadataService.hasProviderFor(mediaType)
 
     fun run(byBarcode: Boolean) {
         val q = query.trim()
         if (q.isEmpty()) return
+        lastBarcode = if (byBarcode) q else null
         loading = true
         message = null
         results = emptyList()
@@ -85,8 +87,11 @@ fun SearchImportScreen(
     }
 
     fun import(result: MetadataResult) {
+        // Prefer the actual scanned/entered barcode; otherwise use the result's own
+        // identifier only when it's a real barcode type (not a provider id).
+        val barcodeTypes = setOf("UPC", "EAN", "ISBN", "Barcode")
         val item = result.toCollectionItem(
-            barcode = result.identifier?.takeIf { result.identifierType != null },
+            barcode = lastBarcode ?: result.identifier?.takeIf { result.identifierType in barcodeTypes },
             customTabId = customTabId,
         )
         container.repository.upsertItem(item)
