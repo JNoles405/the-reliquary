@@ -39,7 +39,6 @@ import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 
 @Composable
@@ -60,7 +59,7 @@ fun PeopleScreen(container: AppContainer, navigator: Navigator) {
                 PillButton(
                     label = "Add",
                     icon = Icons.Filled.Add,
-                    background = if (newName.isBlank()) MaterialTheme.colorScheme.surfaceVariant else ReliquaryTeal,
+                    background = if (newName.isBlank()) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
                     foreground = Color.Black,
                 ) {
                     if (newName.isNotBlank()) {

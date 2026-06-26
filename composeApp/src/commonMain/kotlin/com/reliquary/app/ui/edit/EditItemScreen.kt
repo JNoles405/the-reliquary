@@ -38,7 +38,6 @@ import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 
@@ -184,7 +183,7 @@ fun EditItemScreen(
             PillButton(
                 label = "Save",
                 icon = Icons.Filled.Check,
-                background = ReliquaryTeal,
+                background = MaterialTheme.colorScheme.primary,
                 foreground = MaterialTheme.colorScheme.onBackground,
                 onClick = { save() },
             )

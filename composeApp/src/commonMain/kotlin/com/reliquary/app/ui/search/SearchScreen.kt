@@ -41,7 +41,6 @@ import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 import kotlinx.coroutines.flow.flowOf
 
@@ -102,7 +101,7 @@ private fun ResultRow(item: CollectionItem, onClick: () -> Unit) {
             if (sub.isNotBlank()) {
                 Text(sub, color = ReliquaryMuted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(categoryLabel(item), color = ReliquaryTeal, fontSize = 11.sp)
+            Text(categoryLabel(item), color = MaterialTheme.colorScheme.primary, fontSize = 11.sp)
         }
     }
 }

@@ -27,14 +27,38 @@ private val ReliquaryColors = darkColorScheme(
     onSurfaceVariant = ReliquaryMuted,
 )
 
+/** Selectable accent swatches for the theme picker. */
+data class AccentOption(val name: String, val color: Color)
+
+val ACCENTS: List<AccentOption> = listOf(
+    AccentOption("Teal", ReliquaryTeal),
+    AccentOption("Crimson", Color(0xFFE50914)),
+    AccentOption("Blue", Color(0xFF3B82F6)),
+    AccentOption("Violet", Color(0xFF8B5CF6)),
+    AccentOption("Green", Color(0xFF22C55E)),
+    AccentOption("Amber", Color(0xFFF59E0B)),
+    AccentOption("Pink", Color(0xFFEC4899)),
+)
+
+/** Six-digit RGB hex (e.g. "14B8A6") for persisting an accent choice. */
+fun Color.toRgbHex(): String {
+    fun channel(v: Float) = (v * 255f).toInt().coerceIn(0, 255).toString(16).padStart(2, '0')
+    return (channel(red) + channel(green) + channel(blue)).uppercase()
+}
+
+fun accentFromHex(hex: String?): Color =
+    hex?.let { runCatching { Color(("FF$it").toLong(16)) }.getOrNull() } ?: ReliquaryTeal
+
 @Composable
 fun ReliquaryTheme(
+    accent: Color = ReliquaryTeal,
     @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    // The Reliquary is always dark — the cinematic look is intentional.
+    // The Reliquary is always dark — the cinematic look is intentional. Only the
+    // accent (primary) is user-configurable.
     MaterialTheme(
-        colorScheme = ReliquaryColors,
+        colorScheme = ReliquaryColors.copy(primary = accent, secondary = accent),
         content = content,
     )
 }

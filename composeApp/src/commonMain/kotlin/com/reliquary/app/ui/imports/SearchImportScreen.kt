@@ -46,7 +46,6 @@ import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import kotlinx.coroutines.launch
@@ -137,7 +136,7 @@ fun SearchImportScreen(
                     PillButton(
                         label = "Add manually",
                         icon = null,
-                        background = ReliquaryTeal,
+                        background = MaterialTheme.colorScheme.primary,
                         foreground = MaterialTheme.colorScheme.onBackground,
                     ) { navigator.push(Screen.EditItem(null, mediaType.name, customTabId)) }
                 }
@@ -158,7 +157,7 @@ fun SearchImportScreen(
             PillButton(
                 label = "Search",
                 icon = Icons.Filled.Search,
-                background = ReliquaryTeal,
+                background = MaterialTheme.colorScheme.primary,
                 foreground = MaterialTheme.colorScheme.onBackground,
                 onClick = { run(byBarcode = false) },
             )
@@ -191,7 +190,7 @@ fun SearchImportScreen(
 
         when {
             loading -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = ReliquaryTeal)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
             message != null -> Text(message!!, color = ReliquaryMuted)
         }
@@ -227,7 +226,7 @@ private fun ResultRow(result: MetadataResult, onImport: () -> Unit) {
             if (sub.isNotBlank()) {
                 Text(sub, color = ReliquaryMuted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(result.providerName, color = ReliquaryTeal, fontSize = 11.sp)
+            Text(result.providerName, color = MaterialTheme.colorScheme.primary, fontSize = 11.sp)
         }
     }
 }

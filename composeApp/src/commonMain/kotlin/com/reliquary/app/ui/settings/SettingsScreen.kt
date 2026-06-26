@@ -1,6 +1,8 @@
 package com.reliquary.app.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -38,12 +42,13 @@ import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.util.AppInfo
 import com.reliquary.app.util.openUrl
+import com.reliquary.app.ui.theme.ACCENTS
+import com.reliquary.app.ui.theme.toRgbHex
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 
 @Composable
-fun SettingsScreen(container: AppContainer, navigator: Navigator) {
+fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange: (String) -> Unit = {}) {
     val keys = container.apiKeyStore
 
     Column(
@@ -63,6 +68,24 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator) {
             color = ReliquaryMuted,
             fontSize = 13.sp,
         )
+
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+            Column {
+                Text("Accent color", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    ACCENTS.forEach { option ->
+                        Box(
+                            Modifier.size(34.dp).clip(CircleShape).background(option.color)
+                                .clickable { onAccentChange(option.color.toRgbHex()) },
+                        )
+                    }
+                }
+            }
+        }
 
         PillButton(
             label = "Sync library to/from a file",
@@ -136,7 +159,7 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator) {
                 PillButton(
                     label = "View releases on GitHub",
                     icon = null,
-                    background = ReliquaryTeal,
+                    background = MaterialTheme.colorScheme.primary,
                     foreground = Color.Black,
                 ) { openUrl(AppInfo.RELEASES_URL) }
             }
@@ -167,7 +190,7 @@ private fun KeySection(
                 Spacer(Modifier.height(0.dp))
                 Text(
                     text = if (active) "   ● Active" else "   ○ Not set",
-                    color = if (active) ReliquaryTeal else ReliquaryMuted,
+                    color = if (active) MaterialTheme.colorScheme.primary else ReliquaryMuted,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -189,7 +212,7 @@ private fun KeySection(
             PillButton(
                 label = "Save",
                 icon = Icons.Filled.Check,
-                background = ReliquaryTeal,
+                background = MaterialTheme.colorScheme.primary,
                 foreground = Color.White,
             ) {
                 onSave(values.mapValues { it.value.value.trim() })

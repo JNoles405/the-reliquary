@@ -33,7 +33,6 @@ import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.util.DAY_MILLIS
 import com.reliquary.app.util.formatDate
@@ -62,7 +61,7 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
                 if (overdue > 0) add("$overdue overdue")
                 if (soon > 0) add("$soon due soon")
             }
-            Text(parts.joinToString(" · "), color = if (overdue > 0) ReliquaryTeal else ReliquaryMuted, fontSize = 13.sp)
+            Text(parts.joinToString(" · "), color = if (overdue > 0) MaterialTheme.colorScheme.primary else ReliquaryMuted, fontSize = 13.sp)
         }
         Spacer(Modifier.height(12.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -83,12 +82,12 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
                         )
                         Text("Borrowed by ${person?.name ?: "someone"}", color = ReliquaryMuted, fontSize = 13.sp)
                         val (text, urgent) = dueLabel(loan, now)
-                        Text(text, color = if (urgent) ReliquaryTeal else ReliquaryMuted, fontSize = 12.sp, fontWeight = if (urgent) FontWeight.Bold else FontWeight.Normal)
+                        Text(text, color = if (urgent) MaterialTheme.colorScheme.primary else ReliquaryMuted, fontSize = 12.sp, fontWeight = if (urgent) FontWeight.Bold else FontWeight.Normal)
                     }
                     PillButton(
                         label = "Return",
                         icon = null,
-                        background = ReliquaryTeal,
+                        background = MaterialTheme.colorScheme.primary,
                         foreground = Color.Black,
                     ) { container.repository.markLoanReturned(loan.id) }
                 }

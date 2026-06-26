@@ -39,7 +39,6 @@ import com.reliquary.app.sync.writeTextFile
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import kotlinx.coroutines.Dispatchers
@@ -80,7 +79,7 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
         TypeSelector(importType) { importType = it }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PillButton(label = "Export CSV", icon = null, background = ReliquaryTeal, foreground = Color.Black) {
+            PillButton(label = "Export CSV", icon = null, background = MaterialTheme.colorScheme.primary, foreground = Color.Black) {
                 if (busy) return@PillButton
                 busy = true; status = null
                 scope.launch {
@@ -142,7 +141,7 @@ private fun LetterboxdSection(container: AppContainer) {
                 singleLine = true,
                 label = { Text("Letterboxd username") },
             )
-            PillButton(label = "Import watched", icon = null, background = ReliquaryTeal, foreground = Color.Black) {
+            PillButton(label = "Import watched", icon = null, background = MaterialTheme.colorScheme.primary, foreground = Color.Black) {
                 if (busy || username.isBlank()) return@PillButton
                 busy = true; status = "Importing…"
                 scope.launch {

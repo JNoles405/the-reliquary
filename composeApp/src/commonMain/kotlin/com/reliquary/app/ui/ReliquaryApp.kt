@@ -54,10 +54,9 @@ import com.reliquary.app.ui.sync.SyncScreen
 import com.reliquary.app.ui.tags.TagItemsScreen
 import com.reliquary.app.ui.tags.TagsScreen
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 
 @Composable
-fun ReliquaryApp(container: AppContainer) {
+fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {}) {
     val navigator = rememberNavigator()
     var activeTab by remember { mutableStateOf<ActiveTab>(ActiveTab.Builtin(MediaType.MOVIES)) }
     val customTabs by remember { container.repository.customTabs() }.collectAsState(emptyList())
@@ -105,7 +104,7 @@ fun ReliquaryApp(container: AppContainer) {
                 is Screen.Person -> PersonScreen(container, screen.personId, navigator)
                 Screen.Tags -> TagsScreen(container, navigator)
                 is Screen.TagItems -> TagItemsScreen(container, screen.tag, navigator)
-                Screen.Settings -> SettingsScreen(container, navigator)
+                Screen.Settings -> SettingsScreen(container, navigator, onAccentChange)
             }
         }
     }
@@ -143,7 +142,7 @@ private fun TopNav(
         }
         Text(
             text = "THE RELIQUARY",
-            color = ReliquaryTeal,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 19.sp,
             modifier = Modifier.clickable { navigator.resetTo(Screen.Library) },

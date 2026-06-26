@@ -50,7 +50,6 @@ import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.util.formatDate
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import kotlin.math.round
 import kotlinx.serialization.decodeFromString
@@ -126,7 +125,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 }
                 if (badge != null) {
                     Box(
-                        Modifier.clip(RoundedCornerShape(4.dp)).background(ReliquaryTeal)
+                        Modifier.clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.primary)
                             .padding(horizontal = 8.dp, vertical = 3.dp),
                     ) {
                         Text(badge, color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -179,7 +178,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
             current.rating?.let { r ->
                 Spacer(Modifier.height(16.dp))
                 Box(
-                    Modifier.clip(RoundedCornerShape(4.dp)).background(ReliquaryTeal)
+                    Modifier.clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.primary)
                         .padding(horizontal = 10.dp, vertical = 5.dp),
                 ) {
                     Text(
@@ -228,7 +227,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 val due = activeLoan.dueAt?.let { " · due ${formatDate(it)}" } ?: ""
                 Text(
                     "Loaned to ${borrowerName ?: "someone"}$due",
-                    color = ReliquaryTeal,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -299,7 +298,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
 private fun StatusChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(20.dp))
-            .background(if (selected) ReliquaryTeal else ReliquarySurfaceVariant)
+            .background(if (selected) MaterialTheme.colorScheme.primary else ReliquarySurfaceVariant)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {

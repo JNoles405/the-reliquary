@@ -33,7 +33,6 @@ import com.reliquary.app.metadata.ReliquaryJson
 import kotlin.math.round
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import kotlinx.serialization.decodeFromString
@@ -93,7 +92,7 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
                 Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(ReliquarySurfaceVariant)) {
                     Box(
                         Modifier.fillMaxWidth(count.toFloat() / maxTypeCount)
-                            .height(10.dp).clip(RoundedCornerShape(5.dp)).background(ReliquaryTeal),
+                            .height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.primary),
                     )
                 }
                 Text(count.toString(), color = ReliquaryMuted, fontSize = 14.sp, modifier = Modifier.width(40.dp).padding(start = 10.dp))
@@ -107,7 +106,7 @@ private fun StatCard(label: String, value: String) {
     Column(
         Modifier.width(150.dp).clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp),
     ) {
-        Text(value, color = ReliquaryTeal, fontWeight = FontWeight.Black, fontSize = 26.sp)
+        Text(value, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, fontSize = 26.sp)
         Spacer(Modifier.height(4.dp))
         Text(label, color = ReliquaryMuted, fontSize = 13.sp)
     }

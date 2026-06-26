@@ -58,7 +58,6 @@ import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
-import com.reliquary.app.ui.theme.ReliquaryTeal
 
 enum class SortOrder(val label: String) {
     TITLE("Title A–Z"),
@@ -157,7 +156,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text("${selected.size} selected", color = ReliquaryMuted, fontSize = 13.sp)
-                        PillButton("Mark finished", null, ReliquaryTeal, Color.Black) {
+                        PillButton("Mark finished", null, MaterialTheme.colorScheme.primary, Color.Black) {
                             selected.toList().forEach { id ->
                                 container.repository.getItem(id)?.let {
                                     container.repository.updateStatus(id, Status.optionsFor(it.mediaType).last())
@@ -277,7 +276,7 @@ private fun Controls(
 private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(20.dp))
-            .background(if (selected) ReliquaryTeal else ReliquarySurfaceVariant)
+            .background(if (selected) MaterialTheme.colorScheme.primary else ReliquarySurfaceVariant)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {

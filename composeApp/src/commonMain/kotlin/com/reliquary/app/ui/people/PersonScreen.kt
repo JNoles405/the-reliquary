@@ -37,7 +37,6 @@ import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.theme.ReliquaryMuted
-import com.reliquary.app.ui.theme.ReliquaryTeal
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import com.reliquary.app.util.formatDate
@@ -67,7 +66,7 @@ fun PersonScreen(container: AppContainer, personId: String, navigator: Navigator
         OutlinedTextField(contact, { contact = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Contact") })
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PillButton("Save", null, ReliquaryTeal, Color.Black) {
+            PillButton("Save", null, MaterialTheme.colorScheme.primary, Color.Black) {
                 if (name.isNotBlank()) {
                     repo.upsertPerson(person.copy(name = name.trim(), contact = contact.trim().ifBlank { null }, updatedAt = nowMillis()))
                 }
@@ -118,7 +117,7 @@ private fun LoanRow(container: AppContainer, loan: Loan, navigator: Navigator, a
             Text(detail, color = ReliquaryMuted, fontSize = 13.sp)
         }
         if (active) {
-            PillButton("Return", null, ReliquaryTeal, Color.Black) { container.repository.markLoanReturned(loan.id) }
+            PillButton("Return", null, MaterialTheme.colorScheme.primary, Color.Black) { container.repository.markLoanReturned(loan.id) }
         }
     }
 }
