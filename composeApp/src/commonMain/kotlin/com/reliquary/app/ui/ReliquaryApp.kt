@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -80,6 +81,7 @@ fun ReliquaryApp(container: AppContainer) {
                 },
                 onManageTabs = { navigator.push(Screen.CustomTabs) },
                 onSettings = { navigator.push(Screen.Settings) },
+                onSurprise = { container.repository.surprisePick()?.let { navigator.push(Screen.Detail(it.id)) } },
                 overdueCount = overdueCount,
             )
         },
@@ -118,6 +120,7 @@ private fun TopNav(
     onSelectCustom: (com.reliquary.app.domain.CustomTab) -> Unit,
     onManageTabs: () -> Unit,
     onSettings: () -> Unit,
+    onSurprise: () -> Unit,
     overdueCount: Int,
 ) {
     val onLibrary = navigator.current == Screen.Library
@@ -167,6 +170,14 @@ private fun TopNav(
             TabLabel(loansLabel, navigator.current == Screen.Loans) { navigator.resetTo(Screen.Loans) }
             TabLabel("Stats", navigator.current == Screen.Stats) { navigator.resetTo(Screen.Stats) }
             TabLabel("Tags", navigator.current == Screen.Tags) { navigator.resetTo(Screen.Tags) }
+        }
+        IconButton(onClick = onSurprise) {
+            Icon(
+                Icons.Filled.Shuffle,
+                contentDescription = "Surprise me",
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(22.dp),
+            )
         }
         IconButton(onClick = { navigator.push(Screen.Search) }) {
             Icon(

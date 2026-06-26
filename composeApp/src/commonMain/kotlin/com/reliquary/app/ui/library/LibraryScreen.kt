@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -23,15 +24,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -117,6 +121,10 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     val featured = displayed.firstOrNull() ?: items.firstOrNull()
     val canImport = active is ActiveTab.Builtin
 
+    var selectionMode by remember(active) { mutableStateOf(false) }
+    val selected = remember(active) { mutableStateListOf<String>() }
+    fun exitSelection() { selectionMode = false; selected.clear() }
+
     LazyVerticalGrid(
         columns = GridCells.Adaptive(150.dp),
         modifier = Modifier.fillMaxSize(),
@@ -150,7 +158,35 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     unfinishedOnly = unfinishedOnly, onUnfinished = { unfinishedOnly = !unfinishedOnly },
                     wishlistOnly = wishlistOnly, onWishlist = { wishlistOnly = !wishlistOnly },
                     genres = genres, genre = genre, onGenre = { genre = it },
+                    selectionMode = selectionMode,
+                    onToggleSelect = { if (selectionMode) exitSelection() else selectionMode = true },
                 )
+            }
+            if (selectionMode) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("${selected.size} selected", color = ReliquaryMuted, fontSize = 13.sp)
+                        PillButton("Mark finished", null, ReliquaryTeal, Color.Black) {
+                            selected.toList().forEach { id ->
+                                container.repository.getItem(id)?.let {
+                                    container.repository.updateStatus(id, Status.optionsFor(it.mediaType).last())
+                                }
+                            }
+                            exitSelection()
+                        }
+                        PillButton("Delete", null, ReliquarySurfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                            selected.toList().forEach { container.repository.deleteItem(it) }
+                            exitSelection()
+                        }
+                        PillButton("Done", null, ReliquarySurfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                            exitSelection()
+                        }
+                    }
+                }
             }
             val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && !wishlistOnly && genre == null
             if (showShelves) {
@@ -193,7 +229,13 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                 }
             } else {
                 items(displayed, key = { it.id }) { item ->
-                    ItemCard(item) { navigator.push(Screen.Detail(item.id)) }
+                    ItemCard(item, selected = selectionMode && item.id in selected) {
+                        if (selectionMode) {
+                            if (item.id in selected) selected.remove(item.id) else selected.add(item.id)
+                        } else {
+                            navigator.push(Screen.Detail(item.id))
+                        }
+                    }
                 }
             }
         }
@@ -215,12 +257,15 @@ private fun Controls(
     genres: List<String>,
     genre: String?,
     onGenre: (String?) -> Unit,
+    selectionMode: Boolean,
+    onToggleSelect: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        FilterChip(if (selectionMode) "Cancel select" else "Select", selectionMode, onToggleSelect)
         MenuChip("Sort: ${sort.label}") { dismiss ->
             SortOrder.entries.forEach { option ->
                 DropdownMenuItem(text = { Text(option.label) }, onClick = { onSort(option); dismiss() })
@@ -390,13 +435,24 @@ private fun ShelfCard(item: CollectionItem, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ItemCard(item: CollectionItem, onClick: () -> Unit) {
+private fun ItemCard(item: CollectionItem, selected: Boolean = false, onClick: () -> Unit) {
     Column(Modifier.clickable(onClick = onClick)) {
-        CoverImage(
-            url = item.coverImage,
-            contentDescription = item.title,
-            modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)),
-        )
+        Box {
+            CoverImage(
+                url = item.coverImage,
+                contentDescription = item.title,
+                modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)),
+            )
+            if (selected) {
+                Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)).background(Color(0x9914B8A6)))
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = Color.White,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(26.dp),
+                )
+            }
+        }
         Spacer(Modifier.height(6.dp))
         Text(
             text = item.title,
