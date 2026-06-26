@@ -5,8 +5,6 @@ package com.reliquary.app.domain
  * under a hidden key so it needs no schema change. Labels are media-appropriate.
  */
 object Status {
-    const val KEY = "_status"
-
     fun optionsFor(mediaTypeName: String): List<String> = when (mediaTypeName) {
         MediaType.MOVIES.name -> listOf("Unwatched", "Watching", "Watched")
         MediaType.BOOKS.name -> listOf("Unread", "Reading", "Read")

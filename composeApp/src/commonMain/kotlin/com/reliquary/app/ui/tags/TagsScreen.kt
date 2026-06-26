@@ -30,21 +30,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
-import com.reliquary.app.domain.TAGS_KEY
 import com.reliquary.app.domain.parseTags
-import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
-import kotlinx.serialization.decodeFromString
 
-private fun tagsOf(item: CollectionItem): List<String> = parseTags(
-    item.extraJson
-        ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() }
-        ?.get(TAGS_KEY),
-)
+private fun tagsOf(item: CollectionItem): List<String> = parseTags(item.tags)
 
 @Composable
 fun TagsScreen(container: AppContainer, navigator: Navigator) {

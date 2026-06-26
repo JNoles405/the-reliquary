@@ -53,6 +53,9 @@ CREATE TABLE item (
     location         TEXT,                      -- shelf/box label
     extra_json       TEXT,                      -- provider-specific extra fields (JSON)
     notes            TEXT,
+    status           TEXT,                      -- Watched/Read/Playing/...
+    wanted           INTEGER NOT NULL DEFAULT 0, -- 1 = on wishlist (not owned)
+    tags             TEXT,                      -- comma-separated tags
     favorite         INTEGER NOT NULL DEFAULT 0,
     added_at         INTEGER NOT NULL,
     updated_at       INTEGER NOT NULL,
@@ -98,10 +101,10 @@ upsertItem:
 INSERT OR REPLACE INTO item(
     id, media_type, custom_tab_id, title, sort_title, subtitle, creators,
     release_year, description, cover_path, cover_url, barcode, identifier_type,
-    identifier, rating, genres, format, location, extra_json, notes, favorite,
-    added_at, updated_at, deleted
+    identifier, rating, genres, format, location, extra_json, notes, status,
+    wanted, tags, favorite, added_at, updated_at, deleted
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 );
 
 softDeleteItem:

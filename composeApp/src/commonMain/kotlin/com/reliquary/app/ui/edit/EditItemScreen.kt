@@ -32,9 +32,7 @@ import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.MediaType
-import com.reliquary.app.domain.TAGS_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
-import com.reliquary.app.domain.WANTED_KEY
 import com.reliquary.app.domain.parseTags
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
@@ -81,8 +79,8 @@ fun EditItemScreen(
     val valueStates = remember(itemId) {
         VALUE_FIELDS.associateWith { mutableStateOf(existingExtras[it] ?: "") }
     }
-    var wanted by remember(itemId) { mutableStateOf(existingExtras[WANTED_KEY] == "true") }
-    var tags by remember(itemId) { mutableStateOf(existingExtras[TAGS_KEY] ?: "") }
+    var wanted by remember(itemId) { mutableStateOf(existing?.wanted ?: false) }
+    var tags by remember(itemId) { mutableStateOf(existing?.tags ?: "") }
 
     fun save() {
         if (title.isBlank()) return
@@ -94,10 +92,8 @@ fun EditItemScreen(
             val value = state?.value?.trim().orEmpty()
             if (value.isBlank()) extras.remove(key) else extras[key] = value
         }
-        if (wanted) extras[WANTED_KEY] = "true" else extras.remove(WANTED_KEY)
-        val normalizedTags = parseTags(tags).joinToString(", ")
-        if (normalizedTags.isBlank()) extras.remove(TAGS_KEY) else extras[TAGS_KEY] = normalizedTags
         val mergedExtraJson = if (extras.isEmpty()) null else ReliquaryJson.encodeToString(extras)
+        val normalizedTags = parseTags(tags).joinToString(", ").ifBlank { null }
         val item = CollectionItem(
             id = existing?.id ?: newId(),
             mediaType = existing?.mediaType ?: mediaTypeName,
@@ -118,6 +114,9 @@ fun EditItemScreen(
             location = location.orNull(),
             extraJson = mergedExtraJson,
             notes = notes.orNull(),
+            status = existing?.status,
+            wanted = wanted,
+            tags = normalizedTags,
             favorite = favorite,
             addedAt = existing?.addedAt ?: now,
             updatedAt = now,

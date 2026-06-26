@@ -17,7 +17,7 @@ class CsvService(private val repository: ReliquaryRepository) {
     private val exportColumns = listOf(
         "Title", "Subtitle", "Creators", "Media Type", "Year", "Genres", "Format",
         "Identifier Type", "Identifier", "Barcode", "Rating", "Location",
-        "Cover URL", "Description", "Notes", "Favorite", "Added",
+        "Cover URL", "Description", "Notes", "Status", "Tags", "Wishlist", "Favorite", "Added",
     )
 
     fun exportCsv(): String {
@@ -41,6 +41,9 @@ class CsvService(private val repository: ReliquaryRepository) {
                         item.coverUrl.orEmpty(),
                         item.description.orEmpty(),
                         item.notes.orEmpty(),
+                        item.status.orEmpty(),
+                        item.tags.orEmpty(),
+                        if (item.wanted) "Yes" else "",
                         if (item.favorite) "Yes" else "",
                         formatDate(item.addedAt),
                     ),
@@ -89,6 +92,9 @@ class CsvService(private val repository: ReliquaryRepository) {
                     format = cell(row, "format", "edition"),
                     location = cell(row, "location", "shelf"),
                     notes = cell(row, "notes", "comments"),
+                    status = cell(row, "status"),
+                    tags = cell(row, "tags"),
+                    wanted = cell(row, "wishlist", "wanted")?.lowercase() in setOf("yes", "true", "1", "y"),
                     favorite = cell(row, "favorite", "favourite")?.lowercase() in setOf("yes", "true", "1", "y"),
                     addedAt = now,
                     updatedAt = now,

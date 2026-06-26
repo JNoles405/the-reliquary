@@ -28,7 +28,6 @@ import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.domain.Status
-import com.reliquary.app.domain.WANTED_KEY
 import com.reliquary.app.domain.parseMoney
 import com.reliquary.app.metadata.ReliquaryJson
 import kotlin.math.round
@@ -46,23 +45,22 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     val loans = remember { container.repository.activeLoansNow() }
     val now = remember { nowMillis() }
 
-    val decoded = remember(items) {
-        items.map { item ->
-            item to (item.extraJson
-                ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() }
-                ?: emptyMap())
-        }
-    }
     val total = items.size
-    val wanted = decoded.count { it.second[WANTED_KEY] == "true" }
+    val wanted = items.count { it.wanted }
     val owned = total - wanted
     val favorites = items.count { it.favorite }
     val overdue = loans.count { it.dueAt != null && it.dueAt < now }
-    val finished = decoded.count { it.second[WANTED_KEY] != "true" && it.second[Status.KEY] in Status.DONE }
+    val finished = items.count { !it.wanted && it.status in Status.DONE }
     val finishedPct = if (owned > 0) finished * 100 / owned else 0
-    val collectionValue = decoded
-        .filter { it.second[WANTED_KEY] != "true" }
-        .sumOf { parseMoney(it.second["Current Value"]) ?: 0.0 }
+    val collectionValue = remember(items) {
+        items.filter { !it.wanted }.sumOf { item ->
+            parseMoney(
+                item.extraJson
+                    ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() }
+                    ?.get("Current Value"),
+            ) ?: 0.0
+        }
+    }
 
     val typeCounts = MediaType.entries.map { it.displayName to items.count { i -> i.mediaType == it.name } }
         .toMutableList()

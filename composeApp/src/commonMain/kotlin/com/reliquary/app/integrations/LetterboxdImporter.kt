@@ -5,12 +5,9 @@ import com.reliquary.app.data.newId
 import com.reliquary.app.data.nowMillis
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.MediaType
-import com.reliquary.app.domain.Status
-import com.reliquary.app.metadata.ReliquaryJson
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
-import kotlinx.serialization.encodeToString
 
 /**
  * Imports recently-watched films from a public Letterboxd account via its RSS
@@ -43,7 +40,7 @@ class LetterboxdImporter(
                     rating = stars?.let { it * 2 },
                     identifierType = tmdbId?.let { "TMDB" },
                     identifier = tmdbId,
-                    extraJson = ReliquaryJson.encodeToString(mapOf(Status.KEY to "Watched")),
+                    status = "Watched",
                     addedAt = now,
                     updatedAt = now,
                 ),

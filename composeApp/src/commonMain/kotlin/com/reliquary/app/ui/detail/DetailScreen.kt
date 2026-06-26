@@ -41,9 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.EDITION_FIELDS
-import com.reliquary.app.domain.TAGS_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
-import com.reliquary.app.domain.WANTED_KEY
 import com.reliquary.app.domain.parseTags
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
@@ -92,20 +90,13 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
     val editionExtras = allExtras.filter { it.first in editionKeys }
     val valueExtras = allExtras.filter { it.first in valueKeys }
     val backdrop = allExtras.firstOrNull { it.first == "_backdrop" }?.second
-    val currentStatus = allExtras.firstOrNull { it.first == Status.KEY }?.second
-    val isWanted = allExtras.firstOrNull { it.first == WANTED_KEY }?.second == "true"
+    val currentStatus = current.status
+    val isWanted = current.wanted
 
-    fun updateExtras(mutate: (MutableMap<String, String>) -> Unit) {
-        val map = current.extraJson
-            ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() }
-            ?.toMutableMap() ?: mutableMapOf()
-        mutate(map)
-        val json = if (map.isEmpty()) null else ReliquaryJson.encodeToString(map)
-        container.repository.upsertItem(current.copy(extraJson = json, updatedAt = nowMillis()))
-    }
-
-    fun setStatus(value: String?) = updateExtras { if (value == null) it.remove(Status.KEY) else it[Status.KEY] = value }
-    fun setWanted(value: Boolean) = updateExtras { if (value) it[WANTED_KEY] = "true" else it.remove(WANTED_KEY) }
+    fun setStatus(value: String?) =
+        container.repository.upsertItem(current.copy(status = value, updatedAt = nowMillis()))
+    fun setWanted(value: Boolean) =
+        container.repository.upsertItem(current.copy(wanted = value, updatedAt = nowMillis()))
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(420.dp)) {
@@ -217,7 +208,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 }
             }
 
-            val tags = parseTags(allExtras.firstOrNull { it.first == TAGS_KEY }?.second)
+            val tags = parseTags(current.tags)
             if (tags.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 Text("Tags", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)

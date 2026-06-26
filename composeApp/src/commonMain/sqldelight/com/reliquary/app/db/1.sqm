@@ -1,0 +1,18 @@
+-- v1 -> v2: promote the hot extras keys (status, wishlist, tags) to real columns
+-- so they can be filtered/sorted/aggregated without decoding JSON per row.
+
+ALTER TABLE item ADD COLUMN status TEXT;
+ALTER TABLE item ADD COLUMN wanted INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE item ADD COLUMN tags TEXT;
+
+-- Backfill from the existing extra_json (SQLite JSON1; present on Android 26+ and
+-- the desktop SQLite JDBC driver).
+UPDATE item SET
+    status = json_extract(extra_json, '$._status'),
+    wanted = CASE WHEN json_extract(extra_json, '$._wanted') = 'true' THEN 1 ELSE 0 END,
+    tags = json_extract(extra_json, '$._tags')
+WHERE extra_json IS NOT NULL;
+
+-- Drop the migrated keys from extra_json so they aren't duplicated.
+UPDATE item SET extra_json = json_remove(extra_json, '$._status', '$._wanted', '$._tags')
+WHERE extra_json IS NOT NULL;

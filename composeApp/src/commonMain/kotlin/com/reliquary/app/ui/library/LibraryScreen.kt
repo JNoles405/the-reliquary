@@ -48,12 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.serialization.decodeFromString
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.Status
-import com.reliquary.app.domain.WANTED_KEY
-import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.ActiveTab
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
@@ -99,22 +96,12 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
         items.flatMap { it.genres?.split(",").orEmpty() }
             .map { it.trim() }.filter { it.isNotBlank() }.distinct().sorted()
     }
-    // Decode each item's hidden extras once per items change (status, wanted flag).
-    val extrasById = remember(items) {
-        items.associate { item ->
-            item.id to (item.extraJson
-                ?.let { json -> runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(json) }.getOrNull() }
-                ?: emptyMap())
-        }
-    }
-    val displayed = remember(items, sort, favoritesOnly, onLoanOnly, unfinishedOnly, wishlistOnly, genre, onLoanIds, extrasById) {
+    val displayed = remember(items, sort, favoritesOnly, onLoanOnly, unfinishedOnly, wishlistOnly, genre, onLoanIds) {
         items.filter { item ->
-            val extras = extrasById[item.id].orEmpty()
-            val isWanted = extras[WANTED_KEY] == "true"
-            (if (wishlistOnly) isWanted else !isWanted) &&
+            (if (wishlistOnly) item.wanted else !item.wanted) &&
                 (!favoritesOnly || item.favorite) &&
                 (!onLoanOnly || item.id in onLoanIds) &&
-                (!unfinishedOnly || extras[Status.KEY] !in Status.DONE) &&
+                (!unfinishedOnly || item.status !in Status.DONE) &&
                 (genre == null || item.genres?.contains(genre!!, ignoreCase = true) == true)
         }.sortedWith(sort.comparator())
     }
@@ -190,7 +177,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
             }
             val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && !wishlistOnly && genre == null
             if (showShelves) {
-                val owned = items.filter { extrasById[it.id]?.get(WANTED_KEY) != "true" }
+                val owned = items.filter { !it.wanted }
                 val recent = owned.sortedByDescending { it.addedAt }.take(12)
                 val favorites = owned.filter { it.favorite }
                 val loaned = owned.filter { it.id in onLoanIds }

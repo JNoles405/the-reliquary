@@ -11,7 +11,7 @@ import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.Loan
 import com.reliquary.app.domain.Person
 import com.reliquary.app.domain.Status
-import com.reliquary.app.domain.WANTED_KEY
+import com.reliquary.app.domain.VALUE_FIELDS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -78,6 +78,9 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
             item.location,
             item.extraJson,
             item.notes,
+            item.status,
+            item.wanted.toDbLong(),
+            item.tags,
             item.favorite.toDbLong(),
             item.addedAt,
             item.updatedAt,
@@ -87,20 +90,17 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
 
     fun deleteItem(id: String) = q.softDeleteItem(updatedAt = nowMillis(), id = id)
 
-    /** Set or clear an item's status (stored in extras), preserving other extras. */
+    /** Set or clear an item's status. */
     fun updateStatus(itemId: String, status: String?) {
         val item = getItem(itemId) ?: return
-        val map = decodeExtras(item.extraJson).toMutableMap()
-        if (status == null) map.remove(Status.KEY) else map[Status.KEY] = status
-        val extraJson = if (map.isEmpty()) null else json.encodeToString(map)
-        upsertItem(item.copy(extraJson = extraJson, updatedAt = nowMillis()))
+        upsertItem(item.copy(status = status, updatedAt = nowMillis()))
     }
 
     /** A random owned, unfinished item to suggest — falls back to any owned item. */
     fun surprisePick(): CollectionItem? {
         val all = allItems().filter { !it.deleted }
-        val owned = all.filter { decodeExtras(it.extraJson)[WANTED_KEY] != "true" }
-        val unfinished = owned.filter { decodeExtras(it.extraJson)[Status.KEY] !in Status.DONE }
+        val owned = all.filter { !it.wanted }
+        val unfinished = owned.filter { it.status !in Status.DONE }
         return unfinished.ifEmpty { owned }.ifEmpty { all }.randomOrNull()
     }
 
@@ -153,6 +153,10 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
             format = candidate.format ?: existing.format,
             location = existing.location ?: candidate.location,
             notes = existing.notes ?: candidate.notes,
+            // User-owned fields win; the candidate only fills gaps.
+            status = existing.status ?: candidate.status,
+            wanted = existing.wanted,
+            tags = existing.tags ?: candidate.tags,
             extraJson = mergeExtras(existing.extraJson, candidate.extraJson),
             updatedAt = nowMillis(),
         )
@@ -171,7 +175,7 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
         val existing = decodeExtras(existingJson)
         val merged = existing.toMutableMap()
         decodeExtras(candidateJson).forEach { (key, value) -> if (value.isNotBlank()) merged[key] = value }
-        (EDITION_FIELDS + Status.KEY).forEach { key -> existing[key]?.let { merged[key] = it } }
+        (EDITION_FIELDS + VALUE_FIELDS).forEach { key -> existing[key]?.let { merged[key] = it } }
         return if (merged.isEmpty()) null else json.encodeToString(merged)
     }
     fun allPeople(): List<Person> = q.selectAllPeopleForSync().executeAsList().map { it.toDomain() }
