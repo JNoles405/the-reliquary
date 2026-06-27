@@ -208,11 +208,11 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                             }
                             exitSelection()
                         }
-                        PillButton("Delete", null, ReliquarySurfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                        PillButton("Delete", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
                             selected.toList().forEach { container.repository.deleteItem(it) }
                             exitSelection()
                         }
-                        PillButton("Done", null, ReliquarySurfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                        PillButton("Done", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
                             exitSelection()
                         }
                     }
@@ -426,7 +426,7 @@ private fun Controls(
 private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(20.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary else ReliquarySurfaceVariant)
+            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
@@ -471,7 +471,9 @@ private fun Hero(
         } else {
             Box(
                 Modifier.fillMaxSize().background(
-                    Brush.linearGradient(listOf(Color(0xFF0F3631), Color(0xFF0E1413))),
+                    Brush.linearGradient(
+                        listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.background),
+                    ),
                 ),
             )
         }
@@ -580,7 +582,7 @@ private fun ItemCard(item: CollectionItem, selected: Boolean = false, onClick: (
                 modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)),
             )
             if (selected) {
-                Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)).background(Color(0x9914B8A6)))
+                Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)))
                 Icon(
                     Icons.Filled.CheckCircle,
                     contentDescription = "Selected",

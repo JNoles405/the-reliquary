@@ -166,7 +166,11 @@ private fun TopNav(
         )
         Spacer(Modifier.width(20.dp))
         // Library categories (built-in media types + custom tabs) scroll here.
-        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             MediaType.entries.forEach { type ->
                 val selected = onLibrary && active is ActiveTab.Builtin && active.type == type
                 TabLabel(type.displayName, selected) { onSelectBuiltin(type) }
@@ -192,7 +196,7 @@ private fun TopNav(
                 .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(22.dp))
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 8.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TabLabel("Discover", navigator.current == Screen.Discover) { navigator.resetTo(Screen.Discover) }

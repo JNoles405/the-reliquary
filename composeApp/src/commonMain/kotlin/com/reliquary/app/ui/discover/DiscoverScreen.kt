@@ -192,7 +192,7 @@ private fun PreviewOverlay(
     ) {
         Box(
             Modifier.fillMaxWidth(0.7f).fillMaxSize(0.86f)
-                .clip(RoundedCornerShape(16.dp)).background(ReliquarySurface)
+                .clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surface)
                 .clickable(enabled = false) {},
         ) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -265,7 +265,7 @@ private fun PreviewOverlay(
 private fun WishlistButton(isAdded: Boolean, onAdd: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(50))
-            .background(if (isAdded) ReliquarySurfaceVariant else MaterialTheme.colorScheme.primary)
+            .background(if (isAdded) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary)
             .clickable(enabled = !isAdded, onClick = onAdd)
             .padding(horizontal = 18.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,

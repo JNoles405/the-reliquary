@@ -147,7 +147,7 @@ fun SyncScreen(container: AppContainer, navigator: Navigator) {
         }
 
         status?.let {
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface).padding(14.dp)) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface).padding(14.dp)) {
                 Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp)
             }
         }
@@ -166,7 +166,7 @@ private fun LocalNetworkSection(container: AppContainer) {
     var lanStatus by remember { mutableStateOf<String?>(null) }
     var lanBusy by remember { mutableStateOf(false) }
 
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Local network sync", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Text(

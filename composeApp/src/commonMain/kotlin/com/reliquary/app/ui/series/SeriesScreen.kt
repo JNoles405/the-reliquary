@@ -67,7 +67,7 @@ fun SeriesScreen(container: AppContainer, navigator: Navigator) {
             LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(counts, key = { it.first }) { (series, count) ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface)
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
                             .clickable { navigator.push(Screen.SeriesItems(series)) }.padding(14.dp),
                     ) {
                         Text(series, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))

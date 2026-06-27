@@ -53,7 +53,7 @@ fun PeopleScreen(container: AppContainer, navigator: Navigator) {
         Text("People", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)
         Spacer(Modifier.height(12.dp))
 
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(14.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(14.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Add person", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
                 OutlinedTextField(newName, { newName = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Name") })
@@ -84,7 +84,7 @@ fun PeopleScreen(container: AppContainer, navigator: Navigator) {
             LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(people, key = { it.id }) { person ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface)
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
                             .clickable { navigator.push(Screen.Person(person.id)) }.padding(14.dp),
                     ) {
                         Column {

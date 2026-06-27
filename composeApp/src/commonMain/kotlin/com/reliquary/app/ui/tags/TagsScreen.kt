@@ -62,7 +62,7 @@ fun TagsScreen(container: AppContainer, navigator: Navigator) {
             LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(tagCounts, key = { it.first }) { (tag, count) ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface)
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
                             .clickable { navigator.push(Screen.TagItems(tag)) }.padding(14.dp),
                     ) {
                         Text(tag, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))

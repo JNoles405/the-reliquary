@@ -71,11 +71,10 @@ fun FrameWindowScope.ReliquaryTitleBar(state: WindowState, onClose: () -> Unit) 
         Spacer(Modifier.weight(1f))
         CaptionButton(Icons.Filled.Remove) { state.isMinimized = true }
         CaptionButton(Icons.Filled.CropSquare) {
-            // Maximize = true fullscreen so the window sits ABOVE the Windows taskbar
-            // (a plain Maximized undecorated window leaves the taskbar visible).
-            // Toggle back to a floating window to "restore".
+            // Maximize fills the work area but leaves the Windows taskbar visible;
+            // toggle back to a floating window to "restore".
             state.placement = if (state.placement == WindowPlacement.Floating) {
-                WindowPlacement.Fullscreen
+                WindowPlacement.Maximized
             } else {
                 WindowPlacement.Floating
             }

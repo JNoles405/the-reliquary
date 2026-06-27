@@ -73,7 +73,7 @@ fun PersonScreen(container: AppContainer, personId: String, navigator: Navigator
                     repo.upsertPerson(person.copy(name = name.trim(), contact = contact.trim().ifBlank { null }, updatedAt = nowMillis()))
                 }
             }
-            PillButton("Delete", null, ReliquarySurfaceVariant, MaterialTheme.colorScheme.onBackground) {
+            PillButton("Delete", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
                 repo.deletePerson(personId)
                 navigator.pop()
             }
@@ -109,7 +109,7 @@ private fun SectionHeader(text: String) {
 private fun LoanRow(container: AppContainer, loan: Loan, navigator: Navigator, active: Boolean) {
     val item = container.repository.getItem(loan.itemId)
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
             .clickable { item?.let { navigator.push(Screen.Detail(it.id)) } }.padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

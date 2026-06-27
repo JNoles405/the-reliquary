@@ -51,7 +51,7 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("On Loan", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp, modifier = Modifier.weight(1f))
-            PillButton("People", null, ReliquarySurface, MaterialTheme.colorScheme.onBackground) { navigator.push(Screen.People) }
+            PillButton("People", null, MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onBackground) { navigator.push(Screen.People) }
         }
         if (sorted.isEmpty()) {
             Spacer(Modifier.height(12.dp))
@@ -74,7 +74,7 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
                 val item = container.repository.getItem(loan.itemId)
                 val person = container.repository.getPerson(loan.personId)
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface)
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
                         .clickable { item?.let { navigator.push(Screen.Detail(it.id)) } }
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,

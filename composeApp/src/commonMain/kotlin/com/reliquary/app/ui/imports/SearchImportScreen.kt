@@ -118,7 +118,7 @@ fun SearchImportScreen(
         if (!hasProviders) {
             Box(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                    .background(ReliquarySurface).padding(14.dp),
+                    .background(MaterialTheme.colorScheme.surface).padding(14.dp),
             ) {
                 Column {
                     Text(
@@ -164,7 +164,7 @@ fun SearchImportScreen(
             PillButton(
                 label = "Look up barcode",
                 icon = null,
-                background = ReliquarySurfaceVariant,
+                background = MaterialTheme.colorScheme.surfaceVariant,
                 foreground = MaterialTheme.colorScheme.onBackground,
                 onClick = { run(byBarcode = true) },
             )
@@ -172,7 +172,7 @@ fun SearchImportScreen(
                 PillButton(
                     label = "Scan",
                     icon = Icons.Filled.PhotoCamera,
-                    background = ReliquarySurfaceVariant,
+                    background = MaterialTheme.colorScheme.surfaceVariant,
                     foreground = MaterialTheme.colorScheme.onBackground,
                     onClick = {
                         scope.launch {
@@ -205,7 +205,7 @@ fun SearchImportScreen(
 private fun ResultRow(result: MetadataResult, onImport: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-            .background(ReliquarySurface).clickable(onClick = onImport).padding(10.dp),
+            .background(MaterialTheme.colorScheme.surface).clickable(onClick = onImport).padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CoverImage(

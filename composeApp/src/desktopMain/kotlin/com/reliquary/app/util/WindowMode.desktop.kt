@@ -11,6 +11,8 @@ object DesktopWindowHolder {
 actual fun isDesktopPlatform(): Boolean = true
 
 actual fun setFullscreen(fullscreen: Boolean) {
+    // "fullscreen" here means the big mode: maximized to the work area so the
+    // window stays above the Windows taskbar rather than covering it.
     DesktopWindowHolder.state?.placement =
-        if (fullscreen) WindowPlacement.Fullscreen else WindowPlacement.Floating
+        if (fullscreen) WindowPlacement.Maximized else WindowPlacement.Floating
 }

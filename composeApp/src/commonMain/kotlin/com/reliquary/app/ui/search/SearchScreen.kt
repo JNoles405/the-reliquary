@@ -86,7 +86,7 @@ fun SearchScreen(container: AppContainer, navigator: Navigator) {
 @Composable
 private fun ResultRow(item: CollectionItem, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick).padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

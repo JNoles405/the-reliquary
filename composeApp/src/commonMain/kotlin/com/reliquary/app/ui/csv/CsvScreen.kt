@@ -95,7 +95,7 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
                     busy = false
                 }
             }
-            PillButton(label = "Import CSV", icon = null, background = ReliquarySurfaceVariant, foreground = Color.White) {
+            PillButton(label = "Import CSV", icon = null, background = MaterialTheme.colorScheme.surfaceVariant, foreground = Color.White) {
                 if (busy) return@PillButton
                 busy = true; status = null
                 scope.launch {
@@ -111,7 +111,7 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
         }
 
         status?.let {
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface).padding(14.dp)) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface).padding(14.dp)) {
                 Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp)
             }
         }
@@ -131,7 +131,7 @@ private fun SimklSection(container: AppContainer) {
     var busy by remember { mutableStateOf(false) }
     val hasKey = container.apiKeyStore.has(com.reliquary.app.metadata.ApiKeys.SIMKL)
 
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Import from Simkl", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Text(
@@ -172,7 +172,7 @@ private fun SimklSection(container: AppContainer) {
                 }
                 userCode?.let { code ->
                     Text("Code: $code", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
-                    PillButton(label = "Open simkl.com/pin", icon = null, background = ReliquarySurfaceVariant, foreground = Color.White) {
+                    PillButton(label = "Open simkl.com/pin", icon = null, background = MaterialTheme.colorScheme.surfaceVariant, foreground = Color.White) {
                         openUrl("https://simkl.com/pin")
                     }
                 }
@@ -189,7 +189,7 @@ private fun LetterboxdSection(container: AppContainer) {
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
 
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Import from Letterboxd", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Text(
@@ -228,7 +228,7 @@ private fun TypeSelector(selected: MediaType, onSelect: (MediaType) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         Box(
-            Modifier.clip(RoundedCornerShape(8.dp)).background(ReliquarySurfaceVariant)
+            Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable { expanded = true }.padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
             Text(selected.displayName, color = Color.White)

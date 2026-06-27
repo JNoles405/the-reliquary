@@ -78,7 +78,7 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
         )
 
         if (isDesktopPlatform()) {
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
                 Column {
                     var fullscreen by remember {
                         mutableStateOf(container.repository.getSetting(WINDOW_MODE_SETTING) != "windowed")
@@ -90,14 +90,14 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                             checked = fullscreen,
                             onCheckedChange = {
                                 fullscreen = it
-                                container.repository.setSetting(WINDOW_MODE_SETTING, if (it) "fullscreen" else "windowed")
+                                container.repository.setSetting(WINDOW_MODE_SETTING, if (it) "maximized" else "windowed")
                                 setFullscreen(it)
                             },
                         )
-                        Text("  Open fullscreen", color = MaterialTheme.colorScheme.onBackground)
+                        Text("  Open maximized", color = MaterialTheme.colorScheme.onBackground)
                     }
                     Text(
-                        "Off opens in a window at the default size. Toggling here also applies now.",
+                        "On fills the screen above the taskbar; off opens in a window at the default size. Applies now.",
                         color = ReliquaryMuted,
                         fontSize = 12.sp,
                     )
@@ -105,7 +105,7 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             }
         }
 
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
             Column {
                 Text("Accent color", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Spacer(Modifier.height(10.dp))
@@ -123,7 +123,7 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             }
         }
 
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
             Column {
                 Text("Open to tab", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Spacer(Modifier.height(10.dp))
@@ -133,7 +133,7 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                         val selected = defaultTab == type.name
                         Box(
                             Modifier.clip(RoundedCornerShape(20.dp))
-                                .background(if (selected) MaterialTheme.colorScheme.primary else ReliquarySurfaceVariant)
+                                .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable {
                                     defaultTab = type.name
                                     container.repository.setSetting("ui.defaultTab", type.name)
@@ -150,14 +150,14 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
         PillButton(
             label = "Sync library to/from a file",
             icon = Icons.Filled.SyncAlt,
-            background = ReliquarySurface,
+            background = MaterialTheme.colorScheme.surface,
             foreground = MaterialTheme.colorScheme.onBackground,
         ) { navigator.push(Screen.Sync) }
 
         PillButton(
             label = "Import / export CSV",
             icon = Icons.Filled.SyncAlt,
-            background = ReliquarySurface,
+            background = MaterialTheme.colorScheme.surface,
             foreground = MaterialTheme.colorScheme.onBackground,
         ) { navigator.push(Screen.Csv) }
 
@@ -220,7 +220,7 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             initialValue = { keys.get(it) },
         )
 
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
             Column {
                 Text("About", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Spacer(Modifier.height(6.dp))
@@ -253,7 +253,7 @@ private fun KeySection(
         fields.associate { it.settingKey to mutableStateOf(initialValue(it.settingKey) ?: "") }
     }
 
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(title, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)

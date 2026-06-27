@@ -18,10 +18,12 @@ import com.reliquary.app.util.WINDOW_MODE_SETTING
 
 fun main() {
     val container = AppContainer(createDesktopDriver())
-    val openFullscreen = container.repository.getSetting(WINDOW_MODE_SETTING) != "windowed"
+    val openMaximized = container.repository.getSetting(WINDOW_MODE_SETTING) != "windowed"
     application {
         val state = rememberWindowState(
-            placement = if (openFullscreen) WindowPlacement.Fullscreen else WindowPlacement.Floating,
+            // Maximized (not Fullscreen) so the window fills the work area but stays
+            // ABOVE the Windows taskbar instead of covering it.
+            placement = if (openMaximized) WindowPlacement.Maximized else WindowPlacement.Floating,
             width = 1280.dp,
             height = 820.dp,
         )

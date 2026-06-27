@@ -94,7 +94,7 @@ fun LoanScreen(container: AppContainer, itemId: String, navigator: Navigator) {
 @Composable
 private fun ActiveLoanCard(container: AppContainer, loan: Loan, onReturn: () -> Unit) {
     val borrower = remember(loan.personId) { container.repository.getPerson(loan.personId) }
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
         Column {
             Text("Currently on loan", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
@@ -159,7 +159,7 @@ private fun NewLoanForm(people: List<Person>, onLoan: (name: String, days: Int) 
     PillButton(
         label = "Loan out",
         icon = null,
-        background = if (name.isBlank()) ReliquarySurfaceVariant else MaterialTheme.colorScheme.primary,
+        background = if (name.isBlank()) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
         foreground = Color.White,
     ) { if (name.isNotBlank()) onLoan(name.trim(), days) }
 }
@@ -169,7 +169,7 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary else ReliquarySurfaceVariant)
+            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {

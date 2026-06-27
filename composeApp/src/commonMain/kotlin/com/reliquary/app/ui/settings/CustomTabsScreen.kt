@@ -73,7 +73,7 @@ fun CustomTabsScreen(container: AppContainer, navigator: Navigator) {
             fontSize = 13.sp,
         )
 
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
             Column {
                 Text("New tab", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
@@ -119,7 +119,7 @@ fun CustomTabsScreen(container: AppContainer, navigator: Navigator) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height((tabs.size * 64).dp.coerceAtMost(400.dp))) {
                 items(tabs, key = { it.id }) { tab ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(ReliquarySurface).padding(start = 14.dp),
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface).padding(start = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(tab.name, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))

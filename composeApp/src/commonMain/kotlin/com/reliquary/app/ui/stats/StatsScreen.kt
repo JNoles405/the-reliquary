@@ -91,7 +91,7 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
         typeCounts.forEach { (label, count) ->
             Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text(label, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, modifier = Modifier.width(90.dp))
-                Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(ReliquarySurfaceVariant)) {
+                Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
                     Box(
                         Modifier.fillMaxWidth(count.toFloat() / maxTypeCount)
                             .height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.primary),
@@ -106,7 +106,7 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
 @Composable
 private fun StatCard(label: String, value: String) {
     Column(
-        Modifier.width(150.dp).clip(RoundedCornerShape(10.dp)).background(ReliquarySurface).padding(16.dp),
+        Modifier.width(150.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp),
     ) {
         Text(value, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, fontSize = 26.sp)
         Spacer(Modifier.height(4.dp))

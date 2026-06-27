@@ -126,7 +126,9 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
             } else {
                 Box(
                     Modifier.fillMaxSize().background(
-                        Brush.linearGradient(listOf(Color(0xFF0F3631), Color(0xFF0E1413))),
+                        Brush.linearGradient(
+                            listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.background),
+                        ),
                     ),
                 )
             }
@@ -183,7 +185,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 PillButton(
                     label = "Edit",
                     icon = Icons.Filled.Edit,
-                    background = ReliquarySurfaceVariant,
+                    background = MaterialTheme.colorScheme.surfaceVariant,
                     foreground = MaterialTheme.colorScheme.onBackground,
                 ) {
                     navigator.push(Screen.EditItem(current.id, current.mediaType, current.customTabId))
@@ -191,7 +193,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 PillButton(
                     label = "Trailer",
                     icon = Icons.Filled.PlayCircle,
-                    background = ReliquarySurfaceVariant,
+                    background = MaterialTheme.colorScheme.surfaceVariant,
                     foreground = MaterialTheme.colorScheme.onBackground,
                 ) {
                     val q = listOfNotNull(current.title, current.releaseYear?.toString(), "trailer")
@@ -201,7 +203,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 PillButton(
                     label = "Delete",
                     icon = Icons.Filled.Delete,
-                    background = ReliquarySurfaceVariant,
+                    background = MaterialTheme.colorScheme.surfaceVariant,
                     foreground = MaterialTheme.colorScheme.onBackground,
                 ) {
                     container.repository.deleteItem(current.id)
@@ -387,7 +389,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
 private fun StatusChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(20.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary else ReliquarySurfaceVariant)
+            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {

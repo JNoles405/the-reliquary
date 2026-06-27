@@ -9,18 +9,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,11 +44,14 @@ import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.SERIES_NUM_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
 import com.reliquary.app.domain.parseTags
+import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.ui.Navigator
+import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.ui.theme.ReliquaryMuted
+import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 
@@ -69,12 +79,54 @@ fun EditItemScreen(
     var description by remember { mutableStateOf(existing?.description ?: "") }
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
     var favorite by remember { mutableStateOf(existing?.favorite ?: false) }
+    var rating by remember { mutableStateOf(existing?.rating) }
+
+    val mediaType = remember {
+        MediaType.entries.firstOrNull { it.name == (existing?.mediaType ?: mediaTypeName) } ?: MediaType.MOVIES
+    }
 
     // Existing extras (provider cast/crew + any edition fields), preserved on save.
     val existingExtras = remember(itemId) {
         existing?.extraJson
             ?.let { json -> runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(json) }.getOrNull() }
             .orEmpty()
+    }
+    // Provider extras (cast/crew/backdrop), seeded from the item and replaced when
+    // the user applies a metadata match; merged into the saved extras.
+    var providerExtras by remember(itemId) { mutableStateOf(existingExtras) }
+
+    // "Find metadata" search state.
+    val scope = rememberCoroutineScope()
+    var searching by remember { mutableStateOf(false) }
+    var results by remember { mutableStateOf<List<MetadataResult>>(emptyList()) }
+    var showResults by remember { mutableStateOf(false) }
+    fun runSearch() {
+        if (title.isBlank()) return
+        searching = true
+        showResults = true
+        results = emptyList()
+        scope.launch {
+            results = runCatching { container.metadataService.search(mediaType, title.trim()) }
+                .getOrDefault(emptyList())
+            searching = false
+        }
+    }
+    fun applyMatch(r: MetadataResult) {
+        showResults = false
+        scope.launch {
+            val full = runCatching { container.metadataService.detailsFor(r) }.getOrDefault(r)
+            if (full.title.isNotBlank()) title = full.title
+            full.subtitle?.let { subtitle = it }
+            full.creators?.let { creators = it }
+            full.releaseYear?.let { year = it.toString() }
+            full.genres?.let { genres = it }
+            full.format?.let { format = it }
+            full.coverUrl?.let { coverUrl = it }
+            full.description?.let { description = it }
+            full.identifier?.let { identifier = it }
+            full.rating?.let { rating = it }
+            if (full.extra.isNotEmpty()) providerExtras = providerExtras + full.extra
+        }
     }
     val editionStates = remember(itemId) {
         EDITION_FIELDS.associateWith { mutableStateOf(existingExtras[it] ?: "") }
@@ -90,8 +142,8 @@ fun EditItemScreen(
     fun save() {
         if (title.isBlank()) return
         val now = nowMillis()
-        // Merge edited edition fields into existing extras without losing provider data.
-        val extras = existingExtras.toMutableMap()
+        // Merge edited edition fields into provider extras without losing cast/crew data.
+        val extras = providerExtras.toMutableMap()
         (EDITION_FIELDS + VALUE_FIELDS).forEach { key ->
             val state = editionStates[key] ?: valueStates[key]
             val value = state?.value?.trim().orEmpty()
@@ -117,7 +169,7 @@ fun EditItemScreen(
             identifier = identifier.orNull(),
             genres = genres.orNull(),
             format = format.orNull(),
-            rating = existing?.rating,
+            rating = rating,
             location = location.orNull(),
             extraJson = mergedExtraJson,
             notes = notes.orNull(),
@@ -143,6 +195,20 @@ fun EditItemScreen(
             fontSize = 24.sp,
         )
         Field("Title *", title) { title = it }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            PillButton(
+                label = if (searching) "Searching…" else "Find metadata",
+                icon = Icons.Filled.Search,
+                background = MaterialTheme.colorScheme.surfaceVariant,
+                foreground = MaterialTheme.colorScheme.onBackground,
+                onClick = { runSearch() },
+            )
+            Text(
+                "Search ${mediaType.displayName} by title to pull a cover, cast & details.",
+                color = ReliquaryMuted,
+                fontSize = 12.sp,
+            )
+        }
         Field("Subtitle", subtitle) { subtitle = it }
         Field("Creators (author / director / artist)", creators) { creators = it }
         Field("Year", year) { year = it }
@@ -208,6 +274,52 @@ fun EditItemScreen(
         if (title.isBlank()) {
             Text("Title is required.", color = ReliquaryMuted, fontSize = 12.sp)
         }
+    }
+
+    if (showResults) {
+        AlertDialog(
+            onDismissRequest = { showResults = false },
+            title = { Text("Pick a match") },
+            text = {
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                    when {
+                        searching -> Text("Searching…", color = ReliquaryMuted)
+                        results.isEmpty() -> Text(
+                            "No matches. Check the title, or that a provider key for " +
+                                "${mediaType.displayName} is set in Settings.",
+                            color = ReliquaryMuted,
+                        )
+                        else -> results.take(20).forEach { r ->
+                            Row(
+                                Modifier.fillMaxWidth().clickable { applyMatch(r) }.padding(vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                CoverImage(
+                                    url = r.coverUrl,
+                                    contentDescription = r.title,
+                                    modifier = Modifier.width(44.dp).height(66.dp),
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        r.title,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    val sub = listOfNotNull(
+                                        r.releaseYear?.toString(),
+                                        r.creators,
+                                        r.providerName,
+                                    ).joinToString(" · ")
+                                    if (sub.isNotBlank()) Text(sub, color = ReliquaryMuted, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showResults = false }) { Text("Close") } },
+        )
     }
 }
 

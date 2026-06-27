@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,7 +38,7 @@ fun CoverImage(
 ) {
     if (url.isNullOrBlank()) {
         Box(
-            modifier.background(ReliquarySurfaceVariant),
+            modifier.background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
