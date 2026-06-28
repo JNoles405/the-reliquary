@@ -96,8 +96,12 @@ fun DiscoverScreen(container: AppContainer, navigator: Navigator) {
             if (!loading && movies.isEmpty() && tv.isEmpty() && anime.isEmpty() && books.isEmpty()) {
                 Spacer(Modifier.height(20.dp))
                 Text(
-                    "Add a TMDB key (movies & TV) and/or a Simkl Client ID (anime) in " +
-                        "Settings to see more trending titles here.",
+                    if (discover.hasTmdb || discover.hasSimkl) {
+                        "Couldn't load trending titles right now — check your internet connection and try again."
+                    } else {
+                        "Add a TMDB key (movies & TV) and/or a Simkl Client ID (anime) in " +
+                            "Settings to see trending titles here."
+                    },
                     color = ReliquaryMuted,
                 )
             }

@@ -3,11 +3,14 @@ package com.reliquary.app
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.reliquary.app.data.createDesktopDriver
@@ -15,17 +18,21 @@ import com.reliquary.app.di.AppContainer
 import com.reliquary.app.ui.theme.ReliquaryLogo
 import com.reliquary.app.util.DesktopWindowHolder
 import com.reliquary.app.util.WINDOW_MODE_SETTING
+import com.reliquary.app.util.workArea
 
 fun main() {
     val container = AppContainer(createDesktopDriver())
     val openMaximized = container.repository.getSetting(WINDOW_MODE_SETTING) != "windowed"
+    // Compute the work area (screen minus taskbar) up front so the window opens at
+    // the right size. We size it to the work area as a normal floating window —
+    // rather than WindowPlacement.Maximized, which (for an undecorated window)
+    // covers the Windows taskbar.
+    val wa = workArea()
     application {
         val state = rememberWindowState(
-            // Maximized (not Fullscreen) so the window fills the work area but stays
-            // ABOVE the Windows taskbar instead of covering it.
-            placement = if (openMaximized) WindowPlacement.Maximized else WindowPlacement.Floating,
-            width = 1280.dp,
-            height = 820.dp,
+            placement = WindowPlacement.Floating,
+            position = if (openMaximized) WindowPosition(wa.x.dp, wa.y.dp) else WindowPosition(Alignment.Center),
+            size = if (openMaximized) DpSize(wa.width.dp, wa.height.dp) else DpSize(1280.dp, 820.dp),
         )
         SideEffect { DesktopWindowHolder.state = state }
         Window(
@@ -38,7 +45,7 @@ fun main() {
         ) {
             Column(Modifier.fillMaxSize()) {
                 // Always show the custom title bar so the window controls (incl. close)
-                // are available even in fullscreen.
+                // are available even when maximized.
                 ReliquaryTitleBar(state, onClose = ::exitApplication)
                 App(container)
             }

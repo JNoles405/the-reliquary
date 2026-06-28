@@ -434,6 +434,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
             label,
             color = if (selected) Color.Black else Color.White,
             fontSize = 13.sp,
+            lineHeight = 13.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
         )
     }

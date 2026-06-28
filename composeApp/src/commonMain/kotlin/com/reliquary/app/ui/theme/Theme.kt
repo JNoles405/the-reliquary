@@ -84,7 +84,7 @@ fun ReliquaryTheme(
         val centered = LocalTextStyle.current.copy(
             lineHeightStyle = LineHeightStyle(
                 alignment = LineHeightStyle.Alignment.Center,
-                trim = LineHeightStyle.Trim.None,
+                trim = LineHeightStyle.Trim.Both,
             ),
         )
         CompositionLocalProvider(LocalTextStyle provides centered, content = content)

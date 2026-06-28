@@ -97,19 +97,31 @@ fun EditItemScreen(
 
     // "Find metadata" search state.
     val scope = rememberCoroutineScope()
+    val hasProvider = remember { container.metadataService.hasProviderFor(mediaType) }
     var searching by remember { mutableStateOf(false) }
+    var searched by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<MetadataResult>>(emptyList()) }
     var showResults by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
     fun runSearch() {
-        if (title.isBlank()) return
+        if (query.isBlank()) return
         searching = true
-        showResults = true
+        searched = true
         results = emptyList()
         scope.launch {
-            results = runCatching { container.metadataService.search(mediaType, title.trim()) }
+            results = runCatching { container.metadataService.search(mediaType, query.trim()) }
                 .getOrDefault(emptyList())
             searching = false
         }
+    }
+    fun openSearch() {
+        // Pre-fill with a cleaned-up title so messy imports still match (e.g.
+        // "Anastasia '97 / Animated 2011 .exlibrary" -> "Anastasia").
+        query = cleanTitleForSearch(title)
+        results = emptyList()
+        searched = false
+        showResults = true
+        if (query.isNotBlank()) runSearch()
     }
     fun applyMatch(r: MetadataResult) {
         showResults = false
@@ -201,10 +213,11 @@ fun EditItemScreen(
                 icon = Icons.Filled.Search,
                 background = MaterialTheme.colorScheme.surfaceVariant,
                 foreground = MaterialTheme.colorScheme.onBackground,
-                onClick = { runSearch() },
+                onClick = { openSearch() },
             )
             Text(
-                "Search ${mediaType.displayName} by title to pull a cover, cast & details.",
+                if (hasProvider) "Search ${mediaType.displayName} by title to pull a cover, cast & details."
+                else "No ${mediaType.displayName} provider is enabled — add a key in Settings.",
                 color = ReliquaryMuted,
                 fontSize = 12.sp,
             )
@@ -279,14 +292,42 @@ fun EditItemScreen(
     if (showResults) {
         AlertDialog(
             onDismissRequest = { showResults = false },
-            title = { Text("Pick a match") },
+            title = { Text("Find metadata") },
             text = {
-                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                Column(Modifier.heightIn(max = 460.dp)) {
+                    // Editable query so a messy imported title can be refined.
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            label = { Text("Search ${mediaType.displayName}") },
+                        )
+                        PillButton(
+                            label = "Search",
+                            icon = Icons.Filled.Search,
+                            background = MaterialTheme.colorScheme.primary,
+                            foreground = MaterialTheme.colorScheme.onBackground,
+                            onClick = { runSearch() },
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
                     when {
                         searching -> Text("Searching…", color = ReliquaryMuted)
-                        results.isEmpty() -> Text(
-                            "No matches. Check the title, or that a provider key for " +
-                                "${mediaType.displayName} is set in Settings.",
+                        !hasProvider -> Text(
+                            "No ${mediaType.displayName} provider is enabled. Add a key in " +
+                                "Settings (TMDB for Movies/TV).",
+                            color = ReliquaryMuted,
+                        )
+                        searched && results.isEmpty() -> Text(
+                            "No matches for \"$query\". Try a simpler title — just the name, " +
+                                "without year or edition text.",
                             color = ReliquaryMuted,
                         )
                         else -> results.take(20).forEach { r ->
@@ -316,6 +357,7 @@ fun EditItemScreen(
                             }
                         }
                     }
+                    }
                 }
             },
             confirmButton = { TextButton(onClick = { showResults = false }) { Text("Close") } },
@@ -335,3 +377,19 @@ private fun Field(label: String, value: String, singleLine: Boolean = true, onVa
 }
 
 private fun String.orNull(): String? = trim().ifBlank { null }
+
+/**
+ * Reduce a messy imported title to something a provider can match, e.g.
+ * "Anastasia '97 / Animated 2011 .exlibrary" -> "Anastasia".
+ */
+private fun cleanTitleForSearch(raw: String): String {
+    var s = raw.substringBefore(" / ").substringBefore(" - ")
+    s = s.replace(Regex("\\[[^\\]]*\\]|\\([^)]*\\)"), " ")
+    s = s.replace(
+        Regex("(?i)\\.?ex.?libris|\\.?ex.?library|widescreen|\\bw\\.?s\\b|blu-?ray|\\bdvd\\b|" +
+            "unrated|\\bremaster(ed)?\\b|special edition|director'?s cut|\\banimated\\b"),
+        " ",
+    )
+    s = s.replace(Regex("'\\d{2}\\b"), " ").replace(Regex("\\b(19|20)\\d{2}\\b"), " ")
+    return s.replace(Regex("\\s+"), " ").trim().trim('.', '-', '/', ':', ',').trim()
+}

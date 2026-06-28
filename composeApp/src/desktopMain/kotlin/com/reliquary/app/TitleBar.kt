@@ -36,6 +36,9 @@ import com.reliquary.app.ui.theme.ReliquaryBlack
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquaryOnDark
 import com.reliquary.app.ui.theme.ReliquaryTeal
+import com.reliquary.app.util.fillWorkArea
+import com.reliquary.app.util.isFilling
+import com.reliquary.app.util.restoreWindowed
 import java.awt.MouseInfo
 
 /** A dark, themed replacement for the native window title bar (undecorated window). */
@@ -71,13 +74,9 @@ fun FrameWindowScope.ReliquaryTitleBar(state: WindowState, onClose: () -> Unit) 
         Spacer(Modifier.weight(1f))
         CaptionButton(Icons.Filled.Remove) { state.isMinimized = true }
         CaptionButton(Icons.Filled.CropSquare) {
-            // Maximize fills the work area but leaves the Windows taskbar visible;
-            // toggle back to a floating window to "restore".
-            state.placement = if (state.placement == WindowPlacement.Floating) {
-                WindowPlacement.Maximized
-            } else {
-                WindowPlacement.Floating
-            }
+            // Toggle between filling the work area (above the taskbar) and a
+            // smaller centered window.
+            if (state.isFilling()) state.restoreWindowed() else state.fillWorkArea()
         }
         CaptionButton(Icons.Filled.Close, hoverClose = true, onClick = onClose)
     }

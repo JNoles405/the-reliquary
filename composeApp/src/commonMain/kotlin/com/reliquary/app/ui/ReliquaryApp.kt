@@ -253,6 +253,7 @@ private fun TabLabel(text: String, selected: Boolean, onClick: () -> Unit) {
             color = if (selected) MaterialTheme.colorScheme.primary else ReliquaryMuted,
             fontWeight = FontWeight.Medium,
             fontSize = 15.sp,
+            lineHeight = 15.sp,
         )
     }
 }

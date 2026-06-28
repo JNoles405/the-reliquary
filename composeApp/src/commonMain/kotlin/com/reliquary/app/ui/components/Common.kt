@@ -83,6 +83,6 @@ fun PillButton(
             Icon(icon, contentDescription = null, tint = foreground, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(label, color = foreground, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Text(label, color = foreground, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 15.sp)
     }
 }
