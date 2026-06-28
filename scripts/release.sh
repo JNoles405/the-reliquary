@@ -115,8 +115,9 @@ CODE="$(curl -s -o "$RESP" -w '%{http_code}' -X POST \
   -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/$SLUG/releases" --data @"$PAYLOAD")"
 if [ "$CODE" != "201" ]; then echo "Create release failed (HTTP $CODE):"; cat "$RESP"; exit 1; fi
-UPLOAD_BASE="$(node -e 'console.log(require(process.argv[1]).upload_url.split("{")[0])' "$RESP")"
-HTML_URL="$(node -e 'console.log(require(process.argv[1]).html_url)' "$RESP")"
+read_json() { node -e 'const fs=require("fs");const o=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));console.log(o[process.argv[2]])' "$1" "$2"; }
+UPLOAD_BASE="$(read_json "$RESP" upload_url | sed 's/{.*//')"
+HTML_URL="$(read_json "$RESP" html_url)"
 
 # --- Upload assets -----------------------------------------------------------
 upload() {
