@@ -69,13 +69,19 @@ enum class SortOrder(val label: String) {
     TITLE("Title A–Z"),
     YEAR_NEW("Year (newest)"),
     RATING("Rating"),
+    MY_RATING("My rating"),
     ADDED("Recently added"),
 }
+
+/** Read the user's 1–5 star rating from extras without a full JSON decode. */
+private fun myRatingOf(item: CollectionItem): Int =
+    item.extraJson?.let { Regex("\"_myRating\"\\s*:\\s*\"?(\\d)\"?").find(it)?.groupValues?.get(1)?.toIntOrNull() } ?: 0
 
 private fun SortOrder.comparator(): Comparator<CollectionItem> = when (this) {
     SortOrder.TITLE -> compareBy { (it.sortTitle ?: it.title).lowercase() }
     SortOrder.YEAR_NEW -> compareByDescending { it.releaseYear ?: Long.MIN_VALUE }
     SortOrder.RATING -> compareByDescending { it.rating ?: -1.0 }
+    SortOrder.MY_RATING -> compareByDescending { myRatingOf(it) }
     SortOrder.ADDED -> compareByDescending { it.addedAt }
 }
 
@@ -180,6 +186,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     onToggleSelect = { if (selectionMode) exitSelection() else selectionMode = true },
                     coverDp = coverDp,
                     onCycleCover = { cycleCover() },
+                    onRandom = { displayed.randomOrNull()?.let { navigator.push(Screen.Detail(it.id)) } },
                     views = views,
                     onApplyView = { applyView(it) },
                     onSaveView = { viewName = ""; saveViewDialog = true },
@@ -380,6 +387,7 @@ private fun Controls(
     onToggleSelect: () -> Unit,
     coverDp: Int,
     onCycleCover: () -> Unit,
+    onRandom: () -> Unit,
     views: List<SmartView>,
     onApplyView: (SmartView) -> Unit,
     onSaveView: () -> Unit,
@@ -391,6 +399,7 @@ private fun Controls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FilterChip(if (selectionMode) "Cancel select" else "Select", selectionMode, onToggleSelect)
+        FilterChip("🎲 Surprise", selected = false, onClick = onRandom)
         val coverLabel = when (coverDp) { in 0..120 -> "S"; in 121..170 -> "M"; else -> "L" }
         FilterChip("Covers: $coverLabel", selected = false, onClick = onCycleCover)
         MenuChip("Sort: ${sort.label}") { dismiss ->

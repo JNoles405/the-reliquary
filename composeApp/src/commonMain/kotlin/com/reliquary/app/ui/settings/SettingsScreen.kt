@@ -47,10 +47,15 @@ import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.components.VScrollColumn
 import androidx.compose.material3.Switch
+import com.reliquary.app.sync.defaultSyncFilePath
+import com.reliquary.app.sync.writeTextFile
+import com.reliquary.app.tools.CatalogExporter
 import com.reliquary.app.update.UpdateStatus
 import com.reliquary.app.update.downloadAndInstallUpdate
 import com.reliquary.app.update.isAutoUpdateSupported
 import com.reliquary.app.util.AppInfo
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.reliquary.app.util.WINDOW_MODE_SETTING
 import com.reliquary.app.util.isDesktopPlatform
 import com.reliquary.app.util.openUrl
@@ -175,6 +180,35 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             background = MaterialTheme.colorScheme.surface,
             foreground = MaterialTheme.colorScheme.onBackground,
         ) { navigator.push(Screen.Servers) }
+
+        PillButton(
+            label = "Find duplicates",
+            icon = Icons.Filled.Refresh,
+            background = MaterialTheme.colorScheme.surface,
+            foreground = MaterialTheme.colorScheme.onBackground,
+        ) { navigator.push(Screen.Duplicates) }
+
+        var catalogMsg by remember { mutableStateOf<String?>(null) }
+        PillButton(
+            label = "Export HTML catalog",
+            icon = Icons.Filled.SyncAlt,
+            background = MaterialTheme.colorScheme.surface,
+            foreground = MaterialTheme.colorScheme.onBackground,
+        ) {
+            scope.launch {
+                val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-catalog.html")
+                runCatching {
+                    val html = withContext(Dispatchers.Default) {
+                        CatalogExporter.buildHtml(container.repository.allItems())
+                    }
+                    withContext(Dispatchers.Default) { writeTextFile(path, html) }
+                }.onSuccess {
+                    catalogMsg = "Catalog saved to:\n$path"
+                    if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
+                }.onFailure { catalogMsg = "Export failed: ${it.message}" }
+            }
+        }
+        catalogMsg?.let { Text(it, color = ReliquaryMuted, fontSize = 12.sp) }
 
         KeySection(
             title = "TMDB — Movies",

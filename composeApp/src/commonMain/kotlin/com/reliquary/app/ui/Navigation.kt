@@ -29,6 +29,7 @@ sealed interface Screen {
     data class SeriesItems(val series: String) : Screen
     data object Settings : Screen
     data object Servers : Screen
+    data object Duplicates : Screen
 }
 
 class Navigator(initial: Screen) {

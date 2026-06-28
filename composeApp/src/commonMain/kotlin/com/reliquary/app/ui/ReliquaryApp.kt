@@ -123,6 +123,7 @@ fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {})
                 is Screen.SeriesItems -> SeriesItemsScreen(container, screen.series, navigator)
                 Screen.Settings -> SettingsScreen(container, navigator, onAccentChange)
                 Screen.Servers -> com.reliquary.app.ui.servers.ServersScreen(container, navigator)
+                Screen.Duplicates -> com.reliquary.app.ui.tools.DuplicatesScreen(container, navigator)
             }
         }
     }

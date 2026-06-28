@@ -106,6 +106,24 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
         upsertItem(item.copy(tags = tags, updatedAt = nowMillis()))
     }
 
+    /** Rename a tag across the whole collection, merging into any existing tag of the new name. */
+    fun renameTag(oldTag: String, newTag: String): Int {
+        val from = oldTag.trim()
+        val to = newTag.trim()
+        if (from.isBlank() || to.isBlank() || from.equals(to, ignoreCase = true)) return 0
+        var changed = 0
+        allItems().filter { !it.deleted }.forEach { item ->
+            val tags = parseTags(item.tags)
+            if (tags.any { it.equals(from, ignoreCase = true) }) {
+                val updated = tags.map { if (it.equals(from, ignoreCase = true)) to else it }
+                    .distinct().joinToString(", ")
+                upsertItem(item.copy(tags = updated, updatedAt = nowMillis()))
+                changed++
+            }
+        }
+        return changed
+    }
+
     /** Set or clear a single extras key on an item, preserving the rest. */
     fun setExtra(itemId: String, key: String, value: String?) {
         val item = getItem(itemId) ?: return

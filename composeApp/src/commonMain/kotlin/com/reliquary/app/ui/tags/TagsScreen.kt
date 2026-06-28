@@ -21,10 +21,17 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -45,11 +52,14 @@ private fun tagsOf(item: CollectionItem): List<String> = parseTags(item.tags)
 
 @Composable
 fun TagsScreen(container: AppContainer, navigator: Navigator) {
-    val items = remember { container.repository.allItems().filter { !it.deleted } }
+    var version by remember { mutableStateOf(0) }
+    val items = remember(version) { container.repository.allItems().filter { !it.deleted } }
     val tagCounts = remember(items) {
         items.flatMap { tagsOf(it) }.groupingBy { it }.eachCount().toList().sortedByDescending { it.second }
     }
     val listState = rememberLazyListState()
+    var renaming by remember { mutableStateOf<String?>(null) }
+    var newName by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Tags", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)
@@ -64,14 +74,45 @@ fun TagsScreen(container: AppContainer, navigator: Navigator) {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
                             .clickable { navigator.push(Screen.TagItems(tag)) }.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(tag, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                         Text(count.toString(), color = ReliquaryMuted)
+                        Spacer(Modifier.height(0.dp))
+                        Text(
+                            "  Rename",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { renaming = tag; newName = tag }.padding(start = 12.dp),
+                        )
                     }
                 }
             }
             VScrollbar(listState)
         }
+    }
+
+    renaming?.let { old ->
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            title = { Text("Rename tag") },
+            text = {
+                Column {
+                    Text("Renaming \"$old\" updates it on every item. Using an existing tag name merges them.", color = ReliquaryMuted, fontSize = 12.sp)
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedTextField(newName, { newName = it }, singleLine = true, label = { Text("New tag name") })
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    container.repository.renameTag(old, newName)
+                    renaming = null
+                    version++
+                }) { Text("Rename") }
+            },
+            dismissButton = { TextButton(onClick = { renaming = null }) { Text("Cancel") } },
+        )
     }
 }
 

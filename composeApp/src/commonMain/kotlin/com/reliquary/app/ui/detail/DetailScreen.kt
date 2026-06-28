@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -50,6 +54,7 @@ import com.reliquary.app.domain.PROGRESS_KEY
 import com.reliquary.app.domain.PROGRESS_TOTAL_KEY
 import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
+import com.reliquary.app.domain.MY_RATING_KEY
 import com.reliquary.app.domain.parseTags
 import com.reliquary.app.domain.progressUnit
 import com.reliquary.app.metadata.ReliquaryJson
@@ -250,6 +255,30 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 }
                 StatusChip(if (isWanted) "On wishlist ✓" else "Wishlist", selected = isWanted) {
                     setWanted(!isWanted)
+                }
+            }
+
+            val myRating = allExtras.firstOrNull { it.first == MY_RATING_KEY }?.second?.toIntOrNull() ?: 0
+            Spacer(Modifier.height(16.dp))
+            Text("Your rating", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                (1..5).forEach { star ->
+                    Icon(
+                        imageVector = if (star <= myRating) Icons.Filled.Star else Icons.Filled.StarBorder,
+                        contentDescription = "$star star${if (star == 1) "" else "s"}",
+                        tint = if (star <= myRating) MaterialTheme.colorScheme.primary else ReliquaryMuted,
+                        modifier = Modifier.size(30.dp).clickable {
+                            // Tap the current rating again to clear it.
+                            val next = if (star == myRating) null else star.toString()
+                            updateExtra { m -> if (next == null) m.remove(MY_RATING_KEY) else m[MY_RATING_KEY] = next }
+                        },
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                if (myRating > 0) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("$myRating/5", color = ReliquaryMuted, fontSize = 13.sp)
                 }
             }
 
