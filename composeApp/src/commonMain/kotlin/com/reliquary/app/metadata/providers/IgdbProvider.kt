@@ -59,7 +59,8 @@ class IgdbProvider(
         val clientId = keys.get(ApiKeys.IGDB_CLIENT_ID) ?: return emptyList()
         val safe = query.replace("\"", "")
         val apicalypse = "search \"$safe\"; fields name,summary,first_release_date," +
-            "cover.image_id,genres.name,platforms.name,game_modes.name,total_rating," +
+            "cover.image_id,artworks.image_id,screenshots.image_id," +
+            "genres.name,platforms.name,game_modes.name,total_rating," +
             "involved_companies.company.name,involved_companies.developer,involved_companies.publisher; " +
             "limit 20;"
         val body = client.post("https://api.igdb.com/v4/games") {
@@ -87,6 +88,11 @@ class IgdbProvider(
             .distinct().joinToString(", ").takeIf { it.isNotBlank() }
         val modes = array("game_modes")?.mapNotNull { it.obj()?.string("name") }?.joinToString(", ")
         val rating = double("total_rating")?.takeIf { it > 0 }?.let { it / 10.0 }
+        // A wide in-game screenshot / key art for the detail hero banner.
+        val artworkId = array("artworks")?.firstNotNullOfOrNull { it.obj()?.string("image_id") }
+        val screenshotId = array("screenshots")?.firstNotNullOfOrNull { it.obj()?.string("image_id") }
+        val backdrop = (artworkId ?: screenshotId)
+            ?.let { "https://images.igdb.com/igdb/image/upload/t_1080p/$it.jpg" }
         return MetadataResult(
             providerId = id,
             providerName = displayName,
@@ -105,6 +111,7 @@ class IgdbProvider(
                 company("publisher")?.let { put("Publisher", it) }
                 platforms?.let { put("Platforms", it) }
                 modes?.let { put("Modes", it) }
+                backdrop?.let { put("_backdrop", it) }
             },
         )
     }

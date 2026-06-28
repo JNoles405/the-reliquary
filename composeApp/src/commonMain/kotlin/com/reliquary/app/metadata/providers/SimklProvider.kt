@@ -61,7 +61,9 @@ class SimklProvider(
         val rating = o["ratings"]?.obj()?.get("simkl")?.obj()?.double("rating")
             ?: o["ratings"]?.obj()?.get("imdb")?.obj()?.double("rating")
         val tmdbId = result.extra["_tmdb"]
-        val cast = if (tmdbId != null && keys.has(ApiKeys.TMDB)) fetchTmdbCast(tmdbId) else null
+        val hasTmdb = tmdbId != null && keys.has(ApiKeys.TMDB)
+        val cast = if (hasTmdb) fetchTmdbCast(tmdbId!!) else null
+        val backdrop = if (hasTmdb) fetchTmdbBackdrop(tmdbId!!) else null
         val extras = buildMap {
             o.string("network")?.let { put("Network", it) }
             o.string("country")?.let { put("Country", it) }
@@ -69,6 +71,8 @@ class SimklProvider(
             o.long("total_episodes")?.takeIf { it > 0 }?.let { put("Episodes", it.toString()) }
             o.string("status")?.let { put("Airing status", it) }
             cast?.let { put("Cast", it) }
+            // Wide still for the detail hero banner.
+            backdrop?.let { put("_backdrop", it) }
         }
         return result.copy(
             description = o.string("overview")?.takeIf { it.isNotBlank() } ?: result.description,
@@ -96,6 +100,21 @@ class SimklProvider(
             // Hidden, used by details() to pull a cast list from TMDB if a key is set.
             extra = tmdbId?.let { mapOf("_tmdb" to it) } ?: emptyMap(),
         )
+    }
+
+    private suspend fun fetchTmdbBackdrop(tmdbId: String): String? {
+        val tmdbKey = keys.get(ApiKeys.TMDB) ?: return null
+        // Simkl TV/Anime map to TMDB TV ids; fall back to the movie endpoint if needed.
+        for (path in listOf("tv", "movie")) {
+            val url = "https://api.themoviedb.org/3/$path/$tmdbId?api_key=$tmdbKey"
+            val o = runCatching {
+                ReliquaryJson.parseToJsonElement(
+                    client.get(url) { header(HttpHeaders.UserAgent, USER_AGENT) }.bodyAsText(),
+                ).obj()
+            }.getOrNull() ?: continue
+            o.string("backdrop_path")?.let { return "https://image.tmdb.org/t/p/w1280$it" }
+        }
+        return null
     }
 
     private suspend fun fetchTmdbCast(tmdbId: String): String? {
