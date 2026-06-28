@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -27,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,11 +47,15 @@ import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.components.VScrollColumn
 import androidx.compose.material3.Switch
+import com.reliquary.app.update.UpdateStatus
+import com.reliquary.app.update.downloadAndInstallUpdate
+import com.reliquary.app.update.isAutoUpdateSupported
 import com.reliquary.app.util.AppInfo
 import com.reliquary.app.util.WINDOW_MODE_SETTING
 import com.reliquary.app.util.isDesktopPlatform
 import com.reliquary.app.util.openUrl
 import com.reliquary.app.util.setFullscreen
+import kotlinx.coroutines.launch
 import com.reliquary.app.ui.theme.ACCENTS
 import com.reliquary.app.ui.theme.toRgbHex
 import com.reliquary.app.ui.theme.ReliquaryMuted
@@ -58,6 +65,7 @@ import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 @Composable
 fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange: (String) -> Unit = {}) {
     val keys = container.apiKeyStore
+    val scope = rememberCoroutineScope()
 
     VScrollColumn(
         contentPadding = PaddingValues(20.dp),
@@ -220,6 +228,8 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             initialValue = { keys.get(it) },
         )
 
+        UpdatesSection(container, scope)
+
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
             Column {
                 Text("About", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
@@ -232,6 +242,100 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                     background = MaterialTheme.colorScheme.primary,
                     foreground = Color.Black,
                 ) { openUrl(AppInfo.RELEASES_URL) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdatesSection(container: AppContainer, scope: kotlinx.coroutines.CoroutineScope) {
+    var checking by remember { mutableStateOf(false) }
+    var installing by remember { mutableStateOf(false) }
+    var progress by remember { mutableStateOf(0f) }
+    var status by remember { mutableStateOf<UpdateStatus?>(null) }
+
+    fun check() {
+        if (checking || installing) return
+        status = null
+        checking = true
+        scope.launch {
+            val result = container.updateService.checkForUpdate()
+            checking = false
+            status = result
+            // "Automatically updates": if a newer build exists and we can self-install,
+            // download it and launch the installer (the app then exits to upgrade).
+            if (result is UpdateStatus.Available && isAutoUpdateSupported() && result.downloadUrl != null) {
+                installing = true
+                progress = 0f
+                val error = downloadAndInstallUpdate(result.downloadUrl) { progress = it }
+                if (error != null) { // only returns on failure
+                    installing = false
+                    status = UpdateStatus.Failed(error)
+                }
+            }
+        }
+    }
+
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
+        Column {
+            Text("Updates", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (isAutoUpdateSupported()) {
+                    "Checks GitHub for a newer release, then downloads and installs it. " +
+                        "The app will close while it updates."
+                } else {
+                    "Checks GitHub for a newer release and opens the download page."
+                },
+                color = ReliquaryMuted,
+                fontSize = 12.sp,
+            )
+            Spacer(Modifier.height(10.dp))
+
+            when {
+                installing -> {
+                    Text("Downloading update… ${(progress * 100).toInt()}%", color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp)
+                    Spacer(Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                checking -> Text("Checking for updates…", color = ReliquaryMuted, fontSize = 13.sp)
+                else -> {
+                    PillButton(
+                        label = "Check for updates",
+                        icon = Icons.Filled.Refresh,
+                        background = MaterialTheme.colorScheme.primary,
+                        foreground = Color.Black,
+                    ) { check() }
+
+                    when (val s = status) {
+                        is UpdateStatus.UpToDate -> {
+                            Spacer(Modifier.height(10.dp))
+                            Text("You're on the latest version (v${AppInfo.VERSION}).", color = ReliquaryMuted, fontSize = 13.sp)
+                        }
+                        is UpdateStatus.Available -> {
+                            Spacer(Modifier.height(10.dp))
+                            Text("Update available: v${s.version}.", color = MaterialTheme.colorScheme.primary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            if (!isAutoUpdateSupported() || s.downloadUrl == null) {
+                                Spacer(Modifier.height(8.dp))
+                                PillButton(
+                                    label = "Open download page",
+                                    icon = null,
+                                    background = MaterialTheme.colorScheme.surfaceVariant,
+                                    foreground = MaterialTheme.colorScheme.onBackground,
+                                ) { openUrl(s.pageUrl) }
+                            }
+                        }
+                        is UpdateStatus.Failed -> {
+                            Spacer(Modifier.height(10.dp))
+                            Text("Couldn't check: ${s.message}", color = ReliquaryMuted, fontSize = 13.sp)
+                        }
+                        null -> {}
+                    }
+                }
             }
         }
     }
