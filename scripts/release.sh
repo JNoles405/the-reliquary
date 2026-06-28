@@ -39,7 +39,7 @@ echo "Releasing $TAG"
 
 # --- Remote / repo slug ------------------------------------------------------
 REMOTE_URL="$(git remote get-url origin)"
-SLUG="$(printf '%s' "$REMOTE_URL" | sed -E 's#.*github.com[:/]([^/]+/[^/]+?)(\.git)?$#\1#')"
+SLUG="$(printf '%s' "$REMOTE_URL" | sed -E 's#.*github\.com[:/]##; s#\.git$##')"
 echo "Repo: $SLUG"
 
 if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
