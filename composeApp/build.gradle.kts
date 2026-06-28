@@ -9,6 +9,19 @@ val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) FileInputStream(keystorePropsFile).use { load(it) }
 }
 
+// Single source of truth for the app version (AA.BB.CC) is AppInfo.VERSION.
+// Bump CC for a small change, BB for a feature release, AA for a major one.
+val appVersionName: String = run {
+    val appInfo = file("src/commonMain/kotlin/com/reliquary/app/util/AppInfo.kt")
+    Regex("VERSION\\s*=\\s*\"([^\"]+)\"").find(appInfo.readText())?.groupValues?.get(1)
+        ?: error("Could not read AppInfo.VERSION for the build version")
+}
+// Monotonic integer for Android (AA*10000 + BB*100 + CC), so updates always increase.
+val appVersionCode: Int = appVersionName.split(".").let { parts ->
+    require(parts.size == 3) { "AppInfo.VERSION must be AA.BB.CC, was '$appVersionName'" }
+    parts[0].toInt() * 10000 + parts[1].toInt() * 100 + parts[2].toInt()
+}
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
@@ -79,8 +92,8 @@ android {
         applicationId = "com.reliquary.app"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
     packaging {
         resources {
@@ -130,7 +143,7 @@ compose.desktop {
             // from the bundled runtime, crashing at startup with java/sql/DriverManager.
             modules("java.sql")
             packageName = "The Reliquary"
-            packageVersion = "1.0.0"
+            packageVersion = appVersionName
             description = "The Reliquary — personal media collection manager"
             vendor = "JNoles405"
 
