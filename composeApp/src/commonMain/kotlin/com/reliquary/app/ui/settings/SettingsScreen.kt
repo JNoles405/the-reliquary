@@ -169,6 +169,13 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             foreground = MaterialTheme.colorScheme.onBackground,
         ) { navigator.push(Screen.Csv) }
 
+        PillButton(
+            label = "Media servers (Plex / Jellyfin)",
+            icon = Icons.Filled.SyncAlt,
+            background = MaterialTheme.colorScheme.surface,
+            foreground = MaterialTheme.colorScheme.onBackground,
+        ) { navigator.push(Screen.Servers) }
+
         KeySection(
             title = "TMDB — Movies",
             help = "Create a free account at themoviedb.org, then Settings → API → API Key (v3 auth).",

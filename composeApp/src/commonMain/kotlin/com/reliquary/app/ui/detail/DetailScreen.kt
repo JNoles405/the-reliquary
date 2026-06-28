@@ -101,6 +101,8 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
     val editionExtras = allExtras.filter { it.first in editionKeys }
     val valueExtras = allExtras.filter { it.first in valueKeys }
     val backdrop = allExtras.firstOrNull { it.first == "_backdrop" }?.second
+    val serverPlayUrl = allExtras.firstOrNull { it.first == "_serverPlayUrl" }?.second
+    val serverName = allExtras.firstOrNull { it.first == "_server" }?.second
     val currentStatus = current.status
     val isWanted = current.wanted
 
@@ -199,6 +201,14 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                     val q = listOfNotNull(current.title, current.releaseYear?.toString(), "trailer")
                         .joinToString(" ").replace(" ", "+")
                     openUrl("https://www.youtube.com/results?search_query=$q")
+                }
+                if (serverPlayUrl != null) {
+                    PillButton(
+                        label = "Open in ${serverName ?: "server"}",
+                        icon = Icons.Filled.PlayCircle,
+                        background = MaterialTheme.colorScheme.primary,
+                        foreground = Color.Black,
+                    ) { openUrl(serverPlayUrl) }
                 }
                 PillButton(
                     label = "Delete",

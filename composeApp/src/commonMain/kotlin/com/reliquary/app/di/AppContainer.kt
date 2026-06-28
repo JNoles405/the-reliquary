@@ -40,6 +40,7 @@ class AppContainer(driver: SqlDriver) {
     val lanSync = LanSyncManager(syncService)
     val coverCache = CoverCache(httpClient)
     val updateService = com.reliquary.app.update.UpdateService(httpClient)
+    val mediaServerService = com.reliquary.app.servers.MediaServerService(httpClient, repository)
     val discoverService = DiscoverService(httpClient, apiKeyStore)
     val csvService = CsvService(repository)
     val letterboxdImporter = LetterboxdImporter(httpClient, repository)
