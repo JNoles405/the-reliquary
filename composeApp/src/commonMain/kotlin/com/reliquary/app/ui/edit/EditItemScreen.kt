@@ -111,6 +111,7 @@ fun EditItemScreen(
     var searching by remember { mutableStateOf(false) }
     var searched by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<MetadataResult>>(emptyList()) }
+    var searchError by remember { mutableStateOf<String?>(null) }
     var showResults by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     fun runSearch() {
@@ -118,9 +119,17 @@ fun EditItemScreen(
         searching = true
         searched = true
         results = emptyList()
+        searchError = null
         scope.launch {
-            results = runCatching { container.metadataService.search(mediaType, query.trim()) }
-                .getOrDefault(emptyList())
+            val outcome = runCatching { container.metadataService.searchDetailed(mediaType, query.trim()) }
+                .getOrNull()
+            results = outcome?.results.orEmpty()
+            // Only surface an error if nothing came back — a partial result set is still useful.
+            searchError = if (results.isEmpty()) {
+                outcome?.errors?.firstOrNull() ?: (if (outcome == null) "Search failed — check your connection." else null)
+            } else {
+                null
+            }
             searching = false
         }
     }
@@ -398,6 +407,10 @@ fun EditItemScreen(
                             "No ${mediaType.displayName} provider is enabled. Add a key in " +
                                 "Settings (TMDB for Movies/TV).",
                             color = ReliquaryMuted,
+                        )
+                        searched && searchError != null -> Text(
+                            "$searchError\n\nCheck the API key in Settings (or your internet connection), then try again.",
+                            color = MaterialTheme.colorScheme.error,
                         )
                         searched && results.isEmpty() -> Text(
                             "No matches for \"$query\". Try a simpler title — just the name, " +

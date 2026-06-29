@@ -3,6 +3,7 @@ package com.reliquary.app.metadata.providers
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.metadata.ApiKeyStore
 import com.reliquary.app.metadata.ApiKeys
+import com.reliquary.app.metadata.MetadataException
 import com.reliquary.app.metadata.MetadataProvider
 import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.metadata.ReliquaryJson
@@ -39,7 +40,14 @@ class OmdbProvider(
         val key = keys.get(ApiKeys.OMDB) ?: return emptyList()
         val url = "https://www.omdbapi.com/?apikey=$key&type=movie&s=${query.encodeURLParameter()}"
         val root = ReliquaryJson.parseToJsonElement(client.get(url).bodyAsText()).obj() ?: return emptyList()
-        if (root.string("Response") == "False") return emptyList()
+        if (root.string("Response") == "False") {
+            // Distinguish a real config problem from an ordinary empty result.
+            val error = root.string("Error").orEmpty()
+            if (error.contains("API key", ignoreCase = true) || error.contains("limit", ignoreCase = true)) {
+                throw MetadataException("OMDb: $error")
+            }
+            return emptyList()
+        }
         val hits = root.array("Search")?.mapNotNull { it.obj() } ?: return emptyList()
         return coroutineScope {
             hits.map { hit -> async { enrich(hit, key) } }.awaitAll().filterNotNull()

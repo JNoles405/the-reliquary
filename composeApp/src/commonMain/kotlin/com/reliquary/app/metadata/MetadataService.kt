@@ -2,6 +2,12 @@ package com.reliquary.app.metadata
 
 import com.reliquary.app.domain.MediaType
 
+/** Results plus any human-readable provider errors gathered during a search. */
+data class SearchOutcome(val results: List<MetadataResult>, val errors: List<String>)
+
+/** A provider failure with a message worth showing the user (bad key, rate limit, …). */
+class MetadataException(message: String) : Exception(message)
+
 /**
  * Routes lookups to the providers registered for a given media type and merges
  * their results. A failing provider (offline, rate-limited, bad key) is skipped
@@ -27,11 +33,23 @@ class MetadataService(
     }
 
     suspend fun search(type: MediaType, query: String): List<MetadataResult> =
-        dedupe(
-            providersFor(type).flatMap { provider ->
-                runCatching { provider.search(query) }.getOrElse { emptyList() }
-            },
-        )
+        searchDetailed(type, query).results
+
+    /**
+     * Like [search], but also reports per-provider failures so the UI can tell a
+     * genuine "no matches" apart from a bad key / rate limit / network error
+     * (which otherwise both look like an empty result).
+     */
+    suspend fun searchDetailed(type: MediaType, query: String): SearchOutcome {
+        val errors = mutableListOf<String>()
+        val hits = providersFor(type).flatMap { provider ->
+            runCatching { provider.search(query) }.getOrElse { e ->
+                errors += (e.message ?: "${provider.displayName} request failed.")
+                emptyList()
+            }
+        }
+        return SearchOutcome(dedupe(hits), errors)
+    }
 
     suspend fun lookupByBarcode(type: MediaType, barcode: String): List<MetadataResult> {
         // 1) Providers that index this barcode directly (books by ISBN, music by barcode).

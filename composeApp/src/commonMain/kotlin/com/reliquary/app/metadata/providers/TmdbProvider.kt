@@ -3,6 +3,7 @@ package com.reliquary.app.metadata.providers
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.metadata.ApiKeyStore
 import com.reliquary.app.metadata.ApiKeys
+import com.reliquary.app.metadata.MetadataException
 import com.reliquary.app.metadata.MetadataProvider
 import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.metadata.ReliquaryJson
@@ -36,8 +37,13 @@ class TmdbProvider(
         val key = keys.get(ApiKeys.TMDB) ?: return emptyList()
         val url = "https://api.themoviedb.org/3/search/movie" +
             "?include_adult=false&api_key=$key&query=${query.encodeURLParameter()}"
-        val results = ReliquaryJson.parseToJsonElement(client.get(url).bodyAsText())
-            .obj()?.array("results") ?: return emptyList()
+        val root = ReliquaryJson.parseToJsonElement(client.get(url).bodyAsText()).obj()
+        val results = root?.array("results")
+        if (results == null) {
+            // TMDB reports auth/usage problems as { success:false, status_message:"…" }.
+            root?.string("status_message")?.let { throw MetadataException("TMDB: $it") }
+            return emptyList()
+        }
         return results.mapNotNull { it.obj()?.toResult() }
     }
 
