@@ -9,10 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -32,6 +36,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,9 +50,12 @@ import com.reliquary.app.domain.MediaType
 import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.SERIES_NUM_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
+import com.reliquary.app.domain.parseMoney
 import com.reliquary.app.domain.parseTags
 import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.metadata.ReliquaryJson
+import com.reliquary.app.tools.ValuePoint
+import com.reliquary.app.util.DAY_MILLIS
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
@@ -151,6 +160,7 @@ fun EditItemScreen(
     var tags by remember(itemId) { mutableStateOf(existing?.tags ?: "") }
     var series by remember(itemId) { mutableStateOf(existingExtras[SERIES_KEY] ?: "") }
     var seriesNum by remember(itemId) { mutableStateOf(existingExtras[SERIES_NUM_KEY] ?: "") }
+    var editions by remember(itemId) { mutableStateOf(existingExtras["_editions"] ?: "") }
     // User-defined custom fields, stored in extras under a "cf:" namespace.
     val customFields = remember(itemId) {
         androidx.compose.runtime.mutableStateListOf<Pair<MutableState<String>, MutableState<String>>>().apply {
@@ -172,6 +182,17 @@ fun EditItemScreen(
         }
         if (series.isBlank()) extras.remove(SERIES_KEY) else extras[SERIES_KEY] = series.trim()
         if (seriesNum.isBlank()) extras.remove(SERIES_NUM_KEY) else extras[SERIES_NUM_KEY] = seriesNum.trim()
+        if (editions.isBlank()) extras.remove("_editions") else extras["_editions"] = editions.trim()
+        // Snapshot the current value over time (one point per day, last 30).
+        parseMoney(valueStates["Current Value"]?.value)?.let { curVal ->
+            val today = now / DAY_MILLIS
+            val history = existingExtras["_valueHistory"]
+                ?.let { runCatching { ReliquaryJson.decodeFromString<List<ValuePoint>>(it) }.getOrNull() } ?: emptyList()
+            if (history.lastOrNull()?.value != curVal) {
+                val updated = (history.filter { it.day != today } + ValuePoint(today, curVal)).takeLast(30)
+                extras["_valueHistory"] = ReliquaryJson.encodeToString(updated)
+            }
+        }
         // Rewrite the user's custom fields.
         extras.keys.filter { it.startsWith("cf:") }.toList().forEach { extras.remove(it) }
         customFields.forEach { (name, value) ->
@@ -272,7 +293,24 @@ fun EditItemScreen(
         VALUE_FIELDS.forEach { key ->
             val state = valueStates.getValue(key)
             Field(key, state.value) { state.value = it }
+            if (key == "Condition") {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Mint", "Near Mint", "Very Good", "Good", "Fair", "Poor").forEach { preset ->
+                        val sel = state.value.equals(preset, ignoreCase = true)
+                        Box(
+                            Modifier.clip(RoundedCornerShape(20.dp))
+                                .background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { state.value = preset }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Text(preset, color = if (sel) Color.Black else Color.White, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
         }
+
+        Field("Copies / editions owned (comma-separated)", editions) { editions = it }
 
         Text("Custom fields", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         customFields.forEachIndexed { index, (name, value) ->

@@ -1,6 +1,7 @@
 package com.reliquary.app.ui.stats
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -133,6 +134,20 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     }
     val maxAdded = (addedByMonth.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
 
+    // Per-day activity (items added or finished) for the heatmap.
+    val activity = remember(items) {
+        val m = HashMap<Long, Int>()
+        items.forEach { item ->
+            if (item.addedAt > 0) {
+                val d = item.addedAt / DAY_MILLIS
+                m[d] = (m[d] ?: 0) + 1
+            }
+            item.extraJson?.let { Regex("\"_finishedAt\"\\s*:\\s*\"?(\\d+)\"?").find(it)?.groupValues?.get(1)?.toLongOrNull() }
+                ?.let { val d = it / DAY_MILLIS; m[d] = (m[d] ?: 0) + 1 }
+        }
+        m
+    }
+
     val completionByCat = remember(items) {
         MediaType.entries.mapNotNull { type ->
             val ownedCount = items.count { !it.wanted && it.mediaType == type.name }
@@ -208,6 +223,32 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
                         )
                     }
                     Text("$" + (round(point.value * 100) / 100.0), color = ReliquaryMuted, fontSize = 13.sp, modifier = Modifier.width(72.dp).padding(start = 10.dp))
+                }
+            }
+        }
+
+        if (activity.isNotEmpty()) {
+            Spacer(Modifier.height(24.dp))
+            Text("Activity (last 6 months)", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(Modifier.height(4.dp))
+            Text("Items added or finished, per day.", color = ReliquaryMuted, fontSize = 12.sp)
+            Spacer(Modifier.height(10.dp))
+            val today = nowMillis() / DAY_MILLIS
+            val weeks = 26
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                for (col in 0 until weeks) {
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        for (row in 0..6) {
+                            val day = today - (weeks - 1 - col) * 7L - (6 - row)
+                            val count = activity[day] ?: 0
+                            val color = if (count == 0) {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f + 0.65f * (minOf(count, 4) / 4f))
+                            }
+                            Box(Modifier.width(12.dp).height(12.dp).clip(RoundedCornerShape(2.dp)).background(color))
+                        }
+                    }
                 }
             }
         }

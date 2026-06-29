@@ -68,6 +68,8 @@ import com.reliquary.app.domain.parseTags
 import com.reliquary.app.domain.progressUnit
 import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.metadata.ReliquaryJson
+import com.reliquary.app.tools.ValuePoint
+import com.reliquary.app.util.DAY_MILLIS
 import kotlinx.serialization.encodeToString
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
@@ -143,6 +145,8 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
     val tmdbMediaType = runCatching { MediaType.valueOf(current.mediaType) }.getOrNull()
     var streaming by remember(current.id) { mutableStateOf<List<String>>(emptyList()) }
     val recommendations = remember(current.id) { mutableStateListOf<MetadataResult>() }
+    var collectionName by remember(current.id) { mutableStateOf<String?>(null) }
+    val collectionMissing = remember(current.id) { mutableStateListOf<MetadataResult>() }
     LaunchedEffect(current.id) {
         if (tmdbId != null && tmdbMediaType != null) {
             streaming = runCatching { container.discoverService.watchProviders(tmdbMediaType, tmdbId) }.getOrDefault(emptyList())
@@ -150,6 +154,19 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
             recommendations.addAll(
                 runCatching { container.discoverService.recommendations(tmdbMediaType, tmdbId) }.getOrDefault(emptyList()).take(16),
             )
+            if (tmdbMediaType == MediaType.MOVIES) {
+                runCatching { container.discoverService.collectionParts(tmdbId) }.getOrNull()?.let { (name, parts) ->
+                    val owned = container.repository.allItems().filter { !it.deleted }
+                    val ownedTmdb = owned.filter { it.identifierType == "TMDB" }.mapNotNull { it.identifier }.toSet()
+                    val ownedTitles = owned.map { normalizeTitle(it.title) }.toSet()
+                    val missing = parts.filter { it.identifier !in ownedTmdb && normalizeTitle(it.title) !in ownedTitles }
+                    if (missing.isNotEmpty()) {
+                        collectionName = name
+                        collectionMissing.clear()
+                        collectionMissing.addAll(missing)
+                    }
+                }
+            }
         }
     }
 
@@ -496,6 +513,25 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 Text(streaming.joinToString(" · "), color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
             }
 
+            if (collectionMissing.isNotEmpty()) {
+                Spacer(Modifier.height(20.dp))
+                Text("Complete the set: ${collectionName ?: ""}", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    collectionMissing.forEach { part ->
+                        Column(Modifier.width(110.dp).clickable {
+                            val now = nowMillis()
+                            container.repository.importOrUpdate(part.toCollectionItem().copy(wanted = true, addedAt = now, updatedAt = now))
+                        }) {
+                            CoverImage(part.coverUrl, part.title, Modifier.width(110.dp).height(165.dp).clip(RoundedCornerShape(8.dp)))
+                            Spacer(Modifier.height(4.dp))
+                            Text(part.title, color = MaterialTheme.colorScheme.onBackground, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+                Text("Missing from your collection — tap to add to wishlist.", color = ReliquaryMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+            }
+
             if (recommendations.isNotEmpty()) {
                 Spacer(Modifier.height(20.dp))
                 Text("Because you own this", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -545,6 +581,35 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 )
                 Spacer(Modifier.height(6.dp))
                 valueExtras.forEach { (label, value) -> MetaRow(label, value) }
+            }
+
+            val editions = allExtras.firstOrNull { it.first == "_editions" }?.second
+                ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
+            if (editions.isNotEmpty()) {
+                Spacer(Modifier.height(18.dp))
+                Text("Editions owned", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    editions.forEach { StatusChip(it, selected = false) {} }
+                }
+            }
+
+            val valueHistory = allExtras.firstOrNull { it.first == "_valueHistory" }?.second
+                ?.let { runCatching { ReliquaryJson.decodeFromString<List<ValuePoint>>(it) }.getOrNull() } ?: emptyList()
+            if (valueHistory.size >= 2) {
+                val maxV = valueHistory.maxOf { it.value }.coerceAtLeast(0.01)
+                Spacer(Modifier.height(18.dp))
+                Text("Value over time", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(6.dp))
+                valueHistory.takeLast(10).forEach { pt ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(formatDate(pt.day * DAY_MILLIS), color = ReliquaryMuted, fontSize = 13.sp, modifier = Modifier.width(96.dp))
+                        Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                            Box(Modifier.fillMaxWidth((pt.value / maxV).toFloat().coerceIn(0f, 1f)).height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.primary))
+                        }
+                        Text("$" + (kotlin.math.round(pt.value * 100) / 100.0), color = ReliquaryMuted, fontSize = 13.sp, modifier = Modifier.width(72.dp).padding(start = 8.dp))
+                    }
+                }
             }
 
             if (customExtras.isNotEmpty()) {
@@ -600,6 +665,8 @@ private fun StatusChip(label: String, selected: Boolean, onClick: () -> Unit) {
         )
     }
 }
+
+private fun normalizeTitle(s: String): String = s.lowercase().filter { it.isLetterOrDigit() }
 
 /** A provider page link for an item, when we can build one from its identifier. */
 private fun webLinkFor(item: CollectionItem): Pair<String, String>? {

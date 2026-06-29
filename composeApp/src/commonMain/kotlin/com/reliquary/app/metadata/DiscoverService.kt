@@ -29,6 +29,36 @@ class DiscoverService(private val client: HttpClient, private val keys: ApiKeySt
         return country.array("flatrate")?.mapNotNull { it.obj()?.string("provider_name") }?.distinct().orEmpty()
     }
 
+    /** The TMDB "belongs to collection" parts for a movie (e.g. a trilogy), with the collection name. */
+    suspend fun collectionParts(tmdbMovieId: String): Pair<String, List<MetadataResult>>? {
+        val key = keys.get(ApiKeys.TMDB) ?: return null
+        val movie = runCatching {
+            ReliquaryJson.parseToJsonElement(client.get("https://api.themoviedb.org/3/movie/$tmdbMovieId?api_key=$key").bodyAsText()).obj()
+        }.getOrNull() ?: return null
+        val coll = movie["belongs_to_collection"].obj() ?: return null
+        val collId = coll.string("id") ?: return null
+        val name = coll.string("name") ?: "Collection"
+        val cRoot = runCatching {
+            ReliquaryJson.parseToJsonElement(client.get("https://api.themoviedb.org/3/collection/$collId?api_key=$key").bodyAsText()).obj()
+        }.getOrNull() ?: return null
+        val parts = cRoot.array("parts")?.mapNotNull { el ->
+            val o = el.obj() ?: return@mapNotNull null
+            val title = o.string("title") ?: return@mapNotNull null
+            MetadataResult(
+                providerId = "tmdb",
+                providerName = "TMDB",
+                mediaType = MediaType.MOVIES,
+                title = title,
+                releaseYear = yearFrom(o.string("release_date")),
+                description = o.string("overview"),
+                coverUrl = o.string("poster_path")?.let { "https://image.tmdb.org/t/p/w780$it" },
+                identifierType = "TMDB",
+                identifier = o.string("id"),
+            )
+        }?.sortedBy { it.releaseYear ?: Long.MAX_VALUE }.orEmpty()
+        return name to parts
+    }
+
     /** TMDB recommendations for a title the user owns. */
     suspend fun recommendations(mediaType: MediaType, tmdbId: String): List<MetadataResult> {
         val key = keys.get(ApiKeys.TMDB) ?: return emptyList()
