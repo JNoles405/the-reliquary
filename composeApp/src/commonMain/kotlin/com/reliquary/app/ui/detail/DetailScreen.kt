@@ -69,6 +69,8 @@ import com.reliquary.app.domain.progressUnit
 import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.metadata.ReliquaryJson
 import com.reliquary.app.tools.ValuePoint
+import com.reliquary.app.tools.Session
+import com.reliquary.app.tools.SessionLog
 import com.reliquary.app.util.DAY_MILLIS
 import kotlinx.serialization.encodeToString
 import com.reliquary.app.ui.Navigator
@@ -421,6 +423,53 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 Text("$cur / $tot", color = ReliquaryMuted, fontSize = 12.sp)
             }
 
+            // ---- Sessions log: a history of plays / watches / reads --------
+            val sessions = remember(current.extraJson) {
+                SessionLog.parse(allExtras.firstOrNull { it.first == SessionLog.KEY }?.second)
+            }
+            var sessionNote by remember(current.id) { mutableStateOf("") }
+            fun saveSessions(list: List<Session>) = updateExtra { m ->
+                val enc = SessionLog.encode(list)
+                if (enc == null) m.remove(SessionLog.KEY) else m[SessionLog.KEY] = enc
+            }
+            Spacer(Modifier.height(20.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Sessions", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                if (sessions.isNotEmpty()) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("${sessions.size} logged", color = ReliquaryMuted, fontSize = 13.sp)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = sessionNote,
+                    onValueChange = { sessionNote = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    label = { Text("What happened? (optional)") },
+                )
+                PillButton("Log session", null, MaterialTheme.colorScheme.primary, Color.Black) {
+                    saveSessions(sessions + Session(at = nowMillis(), note = sessionNote.trim()))
+                    sessionNote = ""
+                }
+            }
+            sessions.take(20).forEach { s ->
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(formatDate(s.at), color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        if (s.note.isNotBlank()) Text(s.note, color = ReliquaryMuted, fontSize = 12.sp)
+                    }
+                    Text(
+                        "Remove",
+                        color = ReliquaryMuted,
+                        fontSize = 12.sp,
+                        modifier = Modifier.clickable { saveSessions(sessions - s) }.padding(start = 8.dp),
+                    )
+                }
+            }
+
             val series = allExtras.firstOrNull { it.first == SERIES_KEY }?.second
             if (!series.isNullOrBlank()) {
                 Spacer(Modifier.height(12.dp))
@@ -658,7 +707,7 @@ private fun StatusChip(label: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            color = if (selected) Color.Black else Color.White,
+            color = if (selected) Color.Black else MaterialTheme.colorScheme.onSurface,
             fontSize = 13.sp,
             lineHeight = 13.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,

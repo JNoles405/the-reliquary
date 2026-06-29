@@ -303,7 +303,7 @@ fun EditItemScreen(
                                 .clickable { state.value = preset }
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                         ) {
-                            Text(preset, color = if (sel) Color.Black else Color.White, fontSize = 12.sp)
+                            Text(preset, color = if (sel) Color.Black else MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
                         }
                     }
                 }

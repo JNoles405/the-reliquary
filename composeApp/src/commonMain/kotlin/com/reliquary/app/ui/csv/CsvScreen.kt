@@ -103,7 +103,7 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
                     busy = false
                 }
             }
-            PillButton(label = "Import CSV", icon = null, background = MaterialTheme.colorScheme.surfaceVariant, foreground = Color.White) {
+            PillButton(label = "Import CSV", icon = null, background = MaterialTheme.colorScheme.surfaceVariant, foreground = MaterialTheme.colorScheme.onSurface) {
                 if (busy) return@PillButton
                 busy = true; status = null
                 scope.launch {
@@ -225,7 +225,7 @@ private fun SimklSection(container: AppContainer) {
                 }
                 userCode?.let { code ->
                     Text("Code: $code", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
-                    PillButton(label = "Open simkl.com/pin", icon = null, background = MaterialTheme.colorScheme.surfaceVariant, foreground = Color.White) {
+                    PillButton(label = "Open simkl.com/pin", icon = null, background = MaterialTheme.colorScheme.surfaceVariant, foreground = MaterialTheme.colorScheme.onSurface) {
                         openUrl("https://simkl.com/pin")
                     }
                 }
@@ -285,7 +285,7 @@ private fun ColumnPicker(headers: List<String>, selectedIdx: Int?, onSelect: (In
             Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable { expanded = true }.padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            Text(label, color = Color.White, fontSize = 13.sp)
+            Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(text = { Text("— none —") }, onClick = { onSelect(null); expanded = false })
@@ -304,7 +304,7 @@ private fun TypeSelector(selected: MediaType, onSelect: (MediaType) -> Unit) {
             Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable { expanded = true }.padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
-            Text(selected.displayName, color = Color.White)
+            Text(selected.displayName, color = MaterialTheme.colorScheme.onSurface)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             MediaType.entries.forEach { type ->

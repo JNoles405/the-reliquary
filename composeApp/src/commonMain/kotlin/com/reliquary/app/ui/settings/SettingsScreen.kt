@@ -54,6 +54,8 @@ import androidx.compose.material3.Switch
 import com.reliquary.app.sync.defaultSyncFilePath
 import com.reliquary.app.sync.writeTextFile
 import com.reliquary.app.tools.CatalogExporter
+import com.reliquary.app.tools.LabelExporter
+import com.reliquary.app.tools.ShareExporter
 import com.reliquary.app.tools.ValueReportExporter
 import com.reliquary.app.update.UpdateStatus
 import com.reliquary.app.update.downloadAndInstallUpdate
@@ -166,6 +168,46 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
 
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
             Column {
+                Text("Appearance", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Spacer(Modifier.height(6.dp))
+                var light by remember { mutableStateOf(!com.reliquary.app.UiPrefs.dark) }
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Switch(
+                        checked = light,
+                        onCheckedChange = {
+                            light = it
+                            com.reliquary.app.UiPrefs.dark = !it
+                            container.repository.setSetting(com.reliquary.app.THEME_SETTING, if (it) "light" else "dark")
+                        },
+                    )
+                    Text("  Light theme", color = MaterialTheme.colorScheme.onBackground)
+                }
+                Spacer(Modifier.height(10.dp))
+                Text("Text size", color = ReliquaryMuted, fontSize = 13.sp)
+                Spacer(Modifier.height(6.dp))
+                var scale by remember { mutableStateOf(com.reliquary.app.UiPrefs.textScale) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Small" to 0.9f, "Normal" to 1.0f, "Large" to 1.15f, "Huge" to 1.3f).forEach { (label, value) ->
+                        val sel = kotlin.math.abs(scale - value) < 0.01f
+                        Box(
+                            Modifier.clip(RoundedCornerShape(20.dp))
+                                .background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable {
+                                    scale = value
+                                    com.reliquary.app.UiPrefs.textScale = value
+                                    container.repository.setSetting(com.reliquary.app.TEXT_SCALE_SETTING, value.toString())
+                                }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text(label, color = if (sel) Color.Black else MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
+            Column {
                 Text("Accent color", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Spacer(Modifier.height(10.dp))
                 Row(
@@ -213,7 +255,7 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                                 }
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
-                            Text(type.displayName, color = if (selected) Color.Black else Color.White, fontSize = 13.sp)
+                            Text(type.displayName, color = if (selected) Color.Black else MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
                         }
                     }
                 }
@@ -222,6 +264,8 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
 
         var catalogMsg by remember { mutableStateOf<String?>(null) }
         var reportMsg by remember { mutableStateOf<String?>(null) }
+        var shareMsg by remember { mutableStateOf<String?>(null) }
+        var labelMsg by remember { mutableStateOf<String?>(null) }
         Text("Tools & data", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             ToolButton("Quick add") { navigator.push(Screen.QuickAdd) }
@@ -256,9 +300,36 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                     }.onFailure { reportMsg = "Export failed: ${it.message}" }
                 }
             }
+            ToolButton("Share page (wishlist)") {
+                scope.launch {
+                    val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-share.html")
+                    runCatching {
+                        val owner = container.repository.getSetting("ui.ownerName")
+                        val html = withContext(Dispatchers.Default) { ShareExporter.buildHtml(container.repository.allItems(), owner) }
+                        withContext(Dispatchers.Default) { writeTextFile(path, html) }
+                    }.onSuccess {
+                        shareMsg = "Share page saved to:\n$path"
+                        if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
+                    }.onFailure { shareMsg = "Export failed: ${it.message}" }
+                }
+            }
+            ToolButton("Printable labels") {
+                scope.launch {
+                    val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-labels.html")
+                    runCatching {
+                        val html = withContext(Dispatchers.Default) { LabelExporter.buildHtml(container.repository.allItems()) }
+                        withContext(Dispatchers.Default) { writeTextFile(path, html) }
+                    }.onSuccess {
+                        labelMsg = "Labels saved to:\n$path"
+                        if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
+                    }.onFailure { labelMsg = "Export failed: ${it.message}" }
+                }
+            }
         }
         catalogMsg?.let { Text(it, color = ReliquaryMuted, fontSize = 12.sp) }
         reportMsg?.let { Text(it, color = ReliquaryMuted, fontSize = 12.sp) }
+        shareMsg?.let { Text(it, color = ReliquaryMuted, fontSize = 12.sp) }
+        labelMsg?.let { Text(it, color = ReliquaryMuted, fontSize = 12.sp) }
 
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
             Column {
@@ -275,6 +346,21 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                     },
                     singleLine = true,
                     label = { Text("Finish goal (number)") },
+                )
+                Spacer(Modifier.height(14.dp))
+                Text("Your name", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Spacer(Modifier.height(4.dp))
+                Text("Shown as the heading on the exported share page.", color = ReliquaryMuted, fontSize = 12.sp)
+                Spacer(Modifier.height(8.dp))
+                var ownerName by remember { mutableStateOf(container.repository.getSetting("ui.ownerName") ?: "") }
+                OutlinedTextField(
+                    value = ownerName,
+                    onValueChange = { v ->
+                        ownerName = v
+                        container.repository.setSetting("ui.ownerName", v.trim().ifBlank { null })
+                    },
+                    singleLine = true,
+                    label = { Text("Name on share page") },
                 )
             }
         }

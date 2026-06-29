@@ -1,9 +1,9 @@
 package com.reliquary.app.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
@@ -48,6 +48,23 @@ fun reliquaryColorScheme(accent: Color) = darkColorScheme(
 /** Neutral ink the accent is blended into for the dark canvas/surfaces. */
 private val ReliquaryInk = Color(0xFF0B0E0D)
 
+/** A light palette, also tinted by the accent. */
+fun reliquaryLightColorScheme(accent: Color) = lightColorScheme(
+    primary = accent,
+    onPrimary = if (accent.luminance() > 0.55f) Color(0xFF0A0A0A) else Color.White,
+    secondary = accent,
+    onSecondary = if (accent.luminance() > 0.55f) Color(0xFF0A0A0A) else Color.White,
+    background = mix(ReliquaryPaper, accent, 0.04f),
+    onBackground = Color(0xFF15211E),
+    surface = mix(ReliquaryPaper, accent, 0.07f),
+    onSurface = Color(0xFF15211E),
+    surfaceVariant = mix(ReliquaryPaper, accent, 0.16f),
+    onSurfaceVariant = Color(0xFF4C5C58),
+)
+
+/** Near-white paper the accent is blended into for the light canvas/surfaces. */
+private val ReliquaryPaper = Color(0xFFF6F9F8)
+
 /** Selectable accent swatches for the theme picker. */
 data class AccentOption(val name: String, val color: Color)
 
@@ -73,12 +90,12 @@ fun accentFromHex(hex: String?): Color =
 @Composable
 fun ReliquaryTheme(
     accent: Color = ReliquaryTeal,
-    @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = isSystemInDarkTheme(),
+    dark: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    // The Reliquary is always dark — the cinematic look is intentional. The accent
-    // drives the whole palette (see reliquaryColorScheme).
-    MaterialTheme(colorScheme = reliquaryColorScheme(accent)) {
+    // The accent drives the whole palette; dark is the default cinematic look,
+    // light is available via Settings.
+    MaterialTheme(colorScheme = if (dark) reliquaryColorScheme(accent) else reliquaryLightColorScheme(accent)) {
         // Center text within its line box everywhere, so labels in pills, tags,
         // tabs and buttons sit optically centered instead of riding high.
         val centered = LocalTextStyle.current.copy(
