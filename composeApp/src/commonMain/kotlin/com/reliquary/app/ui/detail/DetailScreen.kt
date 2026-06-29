@@ -222,18 +222,16 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                     .clickable { container.repository.upsertItem(current.copy(favorite = !current.favorite, updatedAt = nowMillis())) },
             )
             // Page through the category without going back to the grid.
-            Row(
-                Modifier.align(Alignment.TopStart).padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (prevItem != null) {
-                    NavArrow(Icons.Filled.ChevronLeft, "Previous in ${current.mediaType.lowercase()}") {
-                        navigator.replaceTop(Screen.Detail(prevItem.id))
+            if (siblings.size > 1) {
+                Row(
+                    Modifier.align(Alignment.TopStart).padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    NavArrow(Icons.Filled.ChevronLeft, "Previous", enabled = prevItem != null) {
+                        prevItem?.let { navigator.replaceTop(Screen.Detail(it.id)) }
                     }
-                }
-                if (nextItem != null) {
-                    NavArrow(Icons.Filled.ChevronRight, "Next in ${current.mediaType.lowercase()}") {
-                        navigator.replaceTop(Screen.Detail(nextItem.id))
+                    NavArrow(Icons.Filled.ChevronRight, "Next", enabled = nextItem != null) {
+                        nextItem?.let { navigator.replaceTop(Screen.Detail(it.id)) }
                     }
                 }
             }
@@ -735,12 +733,19 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
 }
 
 @Composable
-private fun NavArrow(icon: ImageVector, desc: String, onClick: () -> Unit) {
+private fun NavArrow(icon: ImageVector, desc: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.size(40.dp).clip(CircleShape).background(Color(0x66000000)).clickable(onClick = onClick),
+        Modifier.size(40.dp).clip(CircleShape)
+            .background(Color(if (enabled) 0x66000000 else 0x33000000))
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = desc, tint = Color.White, modifier = Modifier.size(28.dp))
+        Icon(
+            icon,
+            contentDescription = desc,
+            tint = if (enabled) Color.White else Color.White.copy(alpha = 0.35f),
+            modifier = Modifier.size(28.dp),
+        )
     }
 }
 

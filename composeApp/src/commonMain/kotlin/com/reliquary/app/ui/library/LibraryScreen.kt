@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -429,17 +430,18 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                 }
             } else {
                 itemsIndexed(displayed, key = { _, it -> it.id }) { index, item ->
+                    val isSelected = item.id in selected
+                    fun toggle() { if (isSelected) selected.remove(item.id) else selected.add(item.id) }
                     ItemCard(
                         item,
-                        selected = selectionMode && item.id in selected,
+                        selectionMode = selectionMode,
+                        selected = isSelected,
                         focused = navEnabled && index == selectedIndex,
-                    ) {
-                        if (selectionMode) {
-                            if (item.id in selected) selected.remove(item.id) else selected.add(item.id)
-                        } else {
-                            navigator.push(Screen.Detail(item.id))
-                        }
-                    }
+                        onToggleSelect = { toggle() },
+                        onClick = {
+                            if (selectionMode) toggle() else navigator.push(Screen.Detail(item.id))
+                        },
+                    )
                 }
             }
         }
@@ -816,7 +818,14 @@ private fun ShelfCard(item: CollectionItem, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ItemCard(item: CollectionItem, selected: Boolean = false, focused: Boolean = false, onClick: () -> Unit) {
+private fun ItemCard(
+    item: CollectionItem,
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    focused: Boolean = false,
+    onToggleSelect: () -> Unit = {},
+    onClick: () -> Unit,
+) {
     // Clip + inner padding so the click/hover highlight is rounded and inset from
     // the cover and title rather than touching them.
     Column(Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(6.dp)) {
@@ -834,12 +843,26 @@ private fun ItemCard(item: CollectionItem, selected: Boolean = false, focused: B
                     ),
             )
             if (selected) {
-                Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)))
+                Box(
+                    Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                        .clickable(onClick = onToggleSelect),
+                )
                 Icon(
                     Icons.Filled.CheckCircle,
                     contentDescription = "Selected",
                     tint = Color.White,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(26.dp),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(26.dp)
+                        .clickable(onClick = onToggleSelect),
+                )
+            } else if (selectionMode) {
+                // An empty, tappable marker so unselected cards read as selectable.
+                Icon(
+                    Icons.Filled.RadioButtonUnchecked,
+                    contentDescription = "Not selected",
+                    tint = Color.White,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(26.dp)
+                        .clickable(onClick = onToggleSelect),
                 )
             }
         }
