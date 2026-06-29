@@ -124,6 +124,15 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     }
     val maxAdded = (addedByMonth.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
 
+    val completionByCat = remember(items) {
+        MediaType.entries.mapNotNull { type ->
+            val ownedCount = items.count { !it.wanted && it.mediaType == type.name }
+            if (ownedCount == 0) return@mapNotNull null
+            val doneCount = items.count { !it.wanted && it.mediaType == type.name && it.status in Status.DONE }
+            type.displayName to (doneCount * 100 / ownedCount)
+        }
+    }
+
     // Record today's collection value (once/day) and load the series to chart it.
     var valueHistory by remember { mutableStateOf<List<ValuePoint>>(emptyList()) }
     LaunchedEffect(Unit) {
@@ -172,6 +181,7 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
         if (ratedAny) StatSection("Your ratings", ratingDist, maxRating)
         if (topPeople.isNotEmpty()) StatSection("Most-collected people", topPeople, maxPeople)
         if (addedByMonth.size >= 2) StatSection("Added per month", addedByMonth, maxAdded)
+        if (completionByCat.any { it.second > 0 }) StatSection("Finished by category (%)", completionByCat, 100)
 
         if (valueHistory.size >= 2) {
             val maxValue = valueHistory.maxOf { it.value }.coerceAtLeast(0.01)

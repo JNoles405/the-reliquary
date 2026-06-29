@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Star
@@ -58,6 +59,7 @@ import com.reliquary.app.domain.PROGRESS_KEY
 import com.reliquary.app.domain.PROGRESS_TOTAL_KEY
 import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
+import com.reliquary.app.domain.MediaType
 import com.reliquary.app.domain.MY_RATING_KEY
 import com.reliquary.app.domain.WISH_PRIORITIES
 import com.reliquary.app.domain.WISH_PRIORITY_KEY
@@ -71,7 +73,9 @@ import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.util.formatDate
+import com.reliquary.app.util.isDesktopPlatform
 import com.reliquary.app.util.openUrl
+import com.reliquary.app.util.pickAndStoreImage
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 import kotlin.math.round
@@ -230,6 +234,14 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                         background = MaterialTheme.colorScheme.primary,
                         foreground = Color.Black,
                     ) { openUrl(serverPlayUrl) }
+                }
+                webLinkFor(current)?.let { (label, url) ->
+                    PillButton(
+                        label = label,
+                        icon = Icons.Filled.OpenInNew,
+                        background = MaterialTheme.colorScheme.surfaceVariant,
+                        foreground = MaterialTheme.colorScheme.onBackground,
+                    ) { openUrl(url) }
                 }
                 PillButton(
                     label = "Duplicate",
@@ -410,6 +422,41 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 )
             }
 
+            val photos = allExtras.firstOrNull { it.first == "_photos" }?.second
+                ?.let { runCatching { ReliquaryJson.decodeFromString<List<String>>(it) }.getOrNull() } ?: emptyList()
+            fun setPhotos(list: List<String>) = updateExtra { m ->
+                if (list.isEmpty()) m.remove("_photos") else m["_photos"] = ReliquaryJson.encodeToString(list)
+            }
+            if (photos.isNotEmpty() || isDesktopPlatform()) {
+                Spacer(Modifier.height(20.dp))
+                Text("Your Photos", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    photos.forEach { path ->
+                        Box {
+                            CoverImage(path, "Photo", Modifier.width(110.dp).height(150.dp).clip(RoundedCornerShape(8.dp)))
+                            Box(
+                                Modifier.align(Alignment.TopEnd).padding(4.dp).clip(RoundedCornerShape(50))
+                                    .background(Color(0xCC000000)).clickable { setPhotos(photos - path) }
+                                    .padding(horizontal = 7.dp, vertical = 2.dp),
+                            ) {
+                                Text("✕", color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    if (isDesktopPlatform()) {
+                        Box(
+                            Modifier.width(110.dp).height(150.dp).clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { pickAndStoreImage()?.let { setPhotos(photos + it) } },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("+ Add photo", color = ReliquaryMuted, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+
             current.description?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(20.dp))
                 Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, lineHeight = 22.sp)
@@ -498,6 +545,27 @@ private fun StatusChip(label: String, selected: Boolean, onClick: () -> Unit) {
             lineHeight = 13.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
         )
+    }
+}
+
+/** A provider page link for an item, when we can build one from its identifier. */
+private fun webLinkFor(item: CollectionItem): Pair<String, String>? {
+    val id = item.identifier?.takeIf { it.isNotBlank() } ?: return null
+    return when (item.identifierType) {
+        "TMDB" -> {
+            val seg = if (item.mediaType == MediaType.TV.name || item.mediaType == MediaType.ANIME.name) "tv" else "movie"
+            "View on TMDB" to "https://www.themoviedb.org/$seg/$id"
+        }
+        "Simkl" -> {
+            val seg = when (item.mediaType) {
+                MediaType.TV.name -> "tv"
+                MediaType.ANIME.name -> "anime"
+                else -> "movies"
+            }
+            "View on Simkl" to "https://simkl.com/$seg/$id"
+        }
+        "OpenLibrary" -> "View on Open Library" to ("https://openlibrary.org" + if (id.startsWith("/")) id else "/$id")
+        else -> null
     }
 }
 
