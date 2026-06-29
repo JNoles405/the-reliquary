@@ -57,11 +57,13 @@ import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.Status
+import com.reliquary.app.domain.wishPriorityRank
 import com.reliquary.app.ui.ActiveTab
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
+import com.reliquary.app.ui.components.edgeToEdgeHorizontal
 import com.reliquary.app.ui.components.VScrollbar
 import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
@@ -77,6 +79,10 @@ enum class SortOrder(val label: String) {
 /** Read the user's 1–5 star rating from extras without a full JSON decode. */
 private fun myRatingOf(item: CollectionItem): Int =
     item.extraJson?.let { Regex("\"_myRating\"\\s*:\\s*\"?(\\d)\"?").find(it)?.groupValues?.get(1)?.toIntOrNull() } ?: 0
+
+/** Read the wishlist priority from extras without a full JSON decode. */
+private fun priorityOf(item: CollectionItem): String? =
+    item.extraJson?.let { Regex("\"_wishPriority\"\\s*:\\s*\"([^\"]+)\"").find(it)?.groupValues?.get(1) }
 
 private fun SortOrder.comparator(): Comparator<CollectionItem> = when (this) {
     SortOrder.TITLE -> compareBy { (it.sortTitle ?: it.title).lowercase() }
@@ -109,13 +115,15 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
             .map { it.trim() }.filter { it.isNotBlank() }.distinct().sorted()
     }
     val displayed = remember(items, sort, favoritesOnly, onLoanOnly, unfinishedOnly, wishlistOnly, genre, onLoanIds) {
-        items.filter { item ->
+        val filtered = items.filter { item ->
             (if (wishlistOnly) item.wanted else !item.wanted) &&
                 (!favoritesOnly || item.favorite) &&
                 (!onLoanOnly || item.id in onLoanIds) &&
                 (!unfinishedOnly || item.status !in Status.DONE) &&
                 (genre == null || item.genres?.contains(genre!!, ignoreCase = true) == true)
         }.sortedWith(sort.comparator())
+        // In the wishlist view, surface higher-priority wants first (stable).
+        if (wishlistOnly) filtered.sortedBy { wishPriorityRank(priorityOf(it)) } else filtered
     }
     val featured = displayed.firstOrNull() ?: items.firstOrNull()
     val canImport = active is ActiveTab.Builtin
@@ -534,9 +542,8 @@ private fun Hero(
 ) {
     Box(
         Modifier
-            .fillMaxWidth()
-            .height(340.dp)
-            .clip(RoundedCornerShape(12.dp)),
+            .edgeToEdgeHorizontal(20.dp)
+            .height(360.dp),
     ) {
         if (featured?.coverImage != null) {
             CoverImage(featured.coverImage, featured.title, Modifier.fillMaxSize())

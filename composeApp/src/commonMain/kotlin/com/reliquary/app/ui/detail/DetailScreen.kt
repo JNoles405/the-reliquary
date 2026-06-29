@@ -57,6 +57,8 @@ import com.reliquary.app.domain.PROGRESS_TOTAL_KEY
 import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
 import com.reliquary.app.domain.MY_RATING_KEY
+import com.reliquary.app.domain.WISH_PRIORITIES
+import com.reliquary.app.domain.WISH_PRIORITY_KEY
 import com.reliquary.app.domain.parseTags
 import com.reliquary.app.domain.progressUnit
 import com.reliquary.app.metadata.ReliquaryJson
@@ -275,6 +277,20 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 }
                 StatusChip(if (isWanted) "On wishlist ✓" else "Wishlist", selected = isWanted) {
                     setWanted(!isWanted)
+                }
+            }
+
+            if (isWanted) {
+                val priority = allExtras.firstOrNull { it.first == WISH_PRIORITY_KEY }?.second
+                Spacer(Modifier.height(16.dp))
+                Text("Wishlist priority", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WISH_PRIORITIES.forEach { p ->
+                        StatusChip(p, selected = priority == p) {
+                            updateExtra { m -> if (priority == p) m.remove(WISH_PRIORITY_KEY) else m[WISH_PRIORITY_KEY] = p }
+                        }
+                    }
                 }
             }
 

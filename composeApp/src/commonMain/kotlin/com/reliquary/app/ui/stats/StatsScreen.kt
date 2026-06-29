@@ -102,6 +102,21 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     val ratedAny = ratingDist.any { it.second > 0 }
     val maxRating = (ratingDist.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
 
+    val topPeople = remember(items) {
+        items.flatMap { item ->
+            val e = item.extraJson
+                ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() } ?: emptyMap()
+            val directors = e["Director"]?.split(",")?.map { it.trim() }.orEmpty()
+            val cast = e["Cast"]?.split(",")?.map { it.substringBefore(" (").trim() }.orEmpty()
+            val creators = item.creators?.split(",")?.map { it.trim() }.orEmpty()
+            (directors + cast + creators).filter { it.isNotBlank() }
+        }.groupingBy { it }.eachCount().toList()
+            .filter { it.second >= 2 }
+            .sortedByDescending { it.second }
+            .take(10)
+    }
+    val maxPeople = (topPeople.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
+
     // Record today's collection value (once/day) and load the series to chart it.
     var valueHistory by remember { mutableStateOf<List<ValuePoint>>(emptyList()) }
     LaunchedEffect(Unit) {
@@ -148,6 +163,7 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
         if (topGenres.isNotEmpty()) StatSection("Top genres", topGenres, maxGenre)
         if (byDecade.isNotEmpty()) StatSection("By decade", byDecade, maxDecade)
         if (ratedAny) StatSection("Your ratings", ratingDist, maxRating)
+        if (topPeople.isNotEmpty()) StatSection("Most-collected people", topPeople, maxPeople)
 
         if (valueHistory.size >= 2) {
             val maxValue = valueHistory.maxOf { it.value }.coerceAtLeast(0.01)

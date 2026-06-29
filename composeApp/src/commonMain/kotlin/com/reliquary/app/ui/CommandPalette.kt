@@ -70,6 +70,7 @@ fun CommandPaletteOverlay(
             add(Command("Stats", "Screen") { navigator.resetTo(Screen.Stats) })
             add(Command("People", "Screen") { navigator.push(Screen.People) })
             add(Command("Settings", "Screen") { navigator.push(Screen.Settings) })
+            add(Command("Quick add", "Tool") { navigator.push(Screen.QuickAdd) })
             add(Command("Backups", "Tool") { navigator.push(Screen.Backups) })
             add(Command("Find duplicates", "Tool") { navigator.push(Screen.Duplicates) })
             add(Command("Media servers", "Tool") { navigator.push(Screen.Servers) })

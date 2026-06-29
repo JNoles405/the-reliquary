@@ -6,6 +6,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,6 +70,7 @@ import com.reliquary.app.ui.theme.ReliquaryMuted
 import com.reliquary.app.ui.theme.ReliquarySurface
 import com.reliquary.app.ui.theme.ReliquarySurfaceVariant
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange: (String) -> Unit = {}) {
     val keys = container.apiKeyStore
@@ -161,83 +164,42 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             }
         }
 
-        PillButton(
-            label = "Sync library to/from a file",
-            icon = Icons.Filled.SyncAlt,
-            background = MaterialTheme.colorScheme.surface,
-            foreground = MaterialTheme.colorScheme.onBackground,
-        ) { navigator.push(Screen.Sync) }
-
-        PillButton(
-            label = "Import / export CSV",
-            icon = Icons.Filled.SyncAlt,
-            background = MaterialTheme.colorScheme.surface,
-            foreground = MaterialTheme.colorScheme.onBackground,
-        ) { navigator.push(Screen.Csv) }
-
-        PillButton(
-            label = "Media servers (Plex / Jellyfin)",
-            icon = Icons.Filled.SyncAlt,
-            background = MaterialTheme.colorScheme.surface,
-            foreground = MaterialTheme.colorScheme.onBackground,
-        ) { navigator.push(Screen.Servers) }
-
-        PillButton(
-            label = "Backups",
-            icon = Icons.Filled.SyncAlt,
-            background = MaterialTheme.colorScheme.surface,
-            foreground = MaterialTheme.colorScheme.onBackground,
-        ) { navigator.push(Screen.Backups) }
-
-        PillButton(
-            label = "Find duplicates",
-            icon = Icons.Filled.Refresh,
-            background = MaterialTheme.colorScheme.surface,
-            foreground = MaterialTheme.colorScheme.onBackground,
-        ) { navigator.push(Screen.Duplicates) }
-
         var catalogMsg by remember { mutableStateOf<String?>(null) }
-        PillButton(
-            label = "Export HTML catalog",
-            icon = Icons.Filled.SyncAlt,
-            background = MaterialTheme.colorScheme.surface,
-            foreground = MaterialTheme.colorScheme.onBackground,
-        ) {
-            scope.launch {
-                val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-catalog.html")
-                runCatching {
-                    val html = withContext(Dispatchers.Default) {
-                        CatalogExporter.buildHtml(container.repository.allItems())
-                    }
-                    withContext(Dispatchers.Default) { writeTextFile(path, html) }
-                }.onSuccess {
-                    catalogMsg = "Catalog saved to:\n$path"
-                    if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
-                }.onFailure { catalogMsg = "Export failed: ${it.message}" }
+        var reportMsg by remember { mutableStateOf<String?>(null) }
+        Text("Tools & data", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ToolButton("Quick add") { navigator.push(Screen.QuickAdd) }
+            ToolButton("Sync to/from file") { navigator.push(Screen.Sync) }
+            ToolButton("Import / export CSV") { navigator.push(Screen.Csv) }
+            ToolButton("Media servers") { navigator.push(Screen.Servers) }
+            ToolButton("Backups") { navigator.push(Screen.Backups) }
+            ToolButton("Find duplicates") { navigator.push(Screen.Duplicates) }
+            ToolButton("Export HTML catalog") {
+                scope.launch {
+                    val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-catalog.html")
+                    runCatching {
+                        val html = withContext(Dispatchers.Default) { CatalogExporter.buildHtml(container.repository.allItems()) }
+                        withContext(Dispatchers.Default) { writeTextFile(path, html) }
+                    }.onSuccess {
+                        catalogMsg = "Catalog saved to:\n$path"
+                        if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
+                    }.onFailure { catalogMsg = "Export failed: ${it.message}" }
+                }
+            }
+            ToolButton("Export value report") {
+                scope.launch {
+                    val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-value-report.html")
+                    runCatching {
+                        val html = withContext(Dispatchers.Default) { ValueReportExporter.buildHtml(container.repository.allItems()) }
+                        withContext(Dispatchers.Default) { writeTextFile(path, html) }
+                    }.onSuccess {
+                        reportMsg = "Value report saved to:\n$path"
+                        if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
+                    }.onFailure { reportMsg = "Export failed: ${it.message}" }
+                }
             }
         }
         catalogMsg?.let { Text(it, color = ReliquaryMuted, fontSize = 12.sp) }
-
-        var reportMsg by remember { mutableStateOf<String?>(null) }
-        PillButton(
-            label = "Export value report (insurance)",
-            icon = Icons.Filled.SyncAlt,
-            background = MaterialTheme.colorScheme.surface,
-            foreground = MaterialTheme.colorScheme.onBackground,
-        ) {
-            scope.launch {
-                val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-value-report.html")
-                runCatching {
-                    val html = withContext(Dispatchers.Default) {
-                        ValueReportExporter.buildHtml(container.repository.allItems())
-                    }
-                    withContext(Dispatchers.Default) { writeTextFile(path, html) }
-                }.onSuccess {
-                    reportMsg = "Value report saved to:\n$path"
-                    if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
-                }.onFailure { reportMsg = "Export failed: ${it.message}" }
-            }
-        }
         reportMsg?.let { Text(it, color = ReliquaryMuted, fontSize = 12.sp) }
 
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
@@ -429,6 +391,17 @@ private fun UpdatesSection(container: AppContainer, scope: kotlinx.coroutines.Co
             }
         }
     }
+}
+
+@Composable
+private fun ToolButton(label: String, onClick: () -> Unit) {
+    PillButton(
+        label = label,
+        icon = Icons.Filled.SyncAlt,
+        background = MaterialTheme.colorScheme.surface,
+        foreground = MaterialTheme.colorScheme.onBackground,
+        onClick = onClick,
+    )
 }
 
 private data class KeyField(val label: String, val settingKey: String, val secret: Boolean = false)
