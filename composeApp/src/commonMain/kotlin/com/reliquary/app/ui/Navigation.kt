@@ -15,6 +15,7 @@ sealed interface Screen {
     data class EditItem(val itemId: String?, val mediaTypeName: String, val customTabId: String?) : Screen
     data class LoanItem(val itemId: String) : Screen
     data object Loans : Screen
+    data object LoanHistory : Screen
     data object CustomTabs : Screen
     data object Sync : Screen
     data object Search : Screen
@@ -46,6 +47,9 @@ class Navigator(initial: Screen) {
 
     fun push(screen: Screen) { stack = stack + screen }
     fun pop() { if (stack.size > 1) stack = stack.dropLast(1) }
+
+    /** Swap the current screen for another (e.g. paging between detail pages). */
+    fun replaceTop(screen: Screen) { stack = stack.dropLast(1) + screen }
 
     /** Clear the back stack to a single root screen (used when switching tabs). */
     fun resetTo(screen: Screen) { stack = listOf(screen) }

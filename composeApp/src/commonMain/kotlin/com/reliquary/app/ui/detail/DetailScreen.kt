@@ -15,13 +15,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.verticalScroll
 import com.reliquary.app.data.newId
 import com.reliquary.app.data.nowMillis
 import com.reliquary.app.domain.Status
 import kotlinx.serialization.encodeToString
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -103,6 +107,20 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
 
     val activeLoan = loans.firstOrNull { it.isActive }
     val borrowerName = activeLoan?.let { container.repository.getPerson(it.personId)?.name }
+
+    // Neighbours in the same category (title order), for the prev/next arrows so the
+    // user can page through entries without returning to the grid.
+    val siblings = remember(current.mediaType, current.customTabId, current.wanted) {
+        container.repository.allItems()
+            .filter {
+                !it.deleted && it.mediaType == current.mediaType &&
+                    it.customTabId == current.customTabId && it.wanted == current.wanted
+            }
+            .sortedBy { (it.sortTitle ?: it.title).lowercase() }
+    }
+    val curIndex = siblings.indexOfFirst { it.id == current.id }
+    val prevItem = siblings.getOrNull(curIndex - 1)
+    val nextItem = siblings.getOrNull(curIndex + 1)
 
     // Cache the remote cover to local storage the first time this item is viewed.
     LaunchedEffect(current.id) {
@@ -203,6 +221,22 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 modifier = Modifier.align(Alignment.TopEnd).padding(20.dp).size(30.dp)
                     .clickable { container.repository.upsertItem(current.copy(favorite = !current.favorite, updatedAt = nowMillis())) },
             )
+            // Page through the category without going back to the grid.
+            Row(
+                Modifier.align(Alignment.TopStart).padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (prevItem != null) {
+                    NavArrow(Icons.Filled.ChevronLeft, "Previous in ${current.mediaType.lowercase()}") {
+                        navigator.replaceTop(Screen.Detail(prevItem.id))
+                    }
+                }
+                if (nextItem != null) {
+                    NavArrow(Icons.Filled.ChevronRight, "Next in ${current.mediaType.lowercase()}") {
+                        navigator.replaceTop(Screen.Detail(nextItem.id))
+                    }
+                }
+            }
             Column(Modifier.align(Alignment.BottomStart).padding(24.dp)) {
                 val badge = when {
                     isWanted -> "WISHLIST"
@@ -697,6 +731,16 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun NavArrow(icon: ImageVector, desc: String, onClick: () -> Unit) {
+    Box(
+        Modifier.size(40.dp).clip(CircleShape).background(Color(0x66000000)).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = desc, tint = Color.White, modifier = Modifier.size(28.dp))
     }
 }
 

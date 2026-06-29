@@ -43,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -241,6 +242,31 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
         }
     }
 
+    // Shared filter/controls bar — rendered inline in the grid and again as a pinned
+    // bar at the top once the inline copy scrolls out of view.
+    val controlsBar: @Composable () -> Unit = {
+        Controls(
+            sort = sort, onSort = { sort = it },
+            favoritesOnly = favoritesOnly, onFavorites = { favoritesOnly = !favoritesOnly },
+            onLoanOnly = onLoanOnly, onLoan = { onLoanOnly = !onLoanOnly },
+            unfinishedOnly = unfinishedOnly, onUnfinished = { unfinishedOnly = !unfinishedOnly },
+            wishlistOnly = wishlistOnly, onWishlist = { wishlistOnly = !wishlistOnly },
+            statuses = statusOptions, statusFilter = statusFilter, onStatus = { statusFilter = it },
+            genres = genres, genre = genre, onGenre = { genre = it },
+            selectionMode = selectionMode,
+            onToggleSelect = { if (selectionMode) exitSelection() else selectionMode = true },
+            coverDp = coverDp,
+            onCycleCover = { cycleCover() },
+            onRandom = { displayed.randomOrNull()?.let { navigator.push(Screen.Detail(it.id)) } },
+            views = views,
+            onApplyView = { applyView(it) },
+            onSaveView = { viewName = ""; saveViewDialog = true },
+            onManageViews = { manageViewsDialog = true },
+        )
+    }
+    // Pin the bar once the user scrolls past the hero + inline controls (items 0 & 1).
+    val showPinnedControls by remember { derivedStateOf { items.isNotEmpty() && gridState.firstVisibleItemIndex >= 2 } }
+
     BoxWithConstraints(Modifier.fillMaxSize()) {
     // Columns produced by GridCells.Adaptive: floor((avail + spacing) / (minSize + spacing)).
     val columns = remember(maxWidth, coverDp) {
@@ -269,11 +295,16 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
         return true
     }
 
+    // The key handler lives on a wrapper Box (not the grid) so its focus-on-press
+    // doesn't compete with the cards' own click handling (which broke Select).
+    Box(
+        Modifier.fillMaxSize()
+            .then(if (navEnabled) Modifier.focusRequester(focusRequester).focusable().onPreviewKeyEvent { handleKey(it) } else Modifier),
+    ) {
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Adaptive(coverDp.dp),
-        modifier = Modifier.fillMaxSize()
-            .then(if (navEnabled) Modifier.focusRequester(focusRequester).focusable().onPreviewKeyEvent { handleKey(it) } else Modifier),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -296,26 +327,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
         if (items.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { EmptyState(active.title) }
         } else {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Controls(
-                    sort = sort, onSort = { sort = it },
-                    favoritesOnly = favoritesOnly, onFavorites = { favoritesOnly = !favoritesOnly },
-                    onLoanOnly = onLoanOnly, onLoan = { onLoanOnly = !onLoanOnly },
-                    unfinishedOnly = unfinishedOnly, onUnfinished = { unfinishedOnly = !unfinishedOnly },
-                    wishlistOnly = wishlistOnly, onWishlist = { wishlistOnly = !wishlistOnly },
-                    statuses = statusOptions, statusFilter = statusFilter, onStatus = { statusFilter = it },
-                    genres = genres, genre = genre, onGenre = { genre = it },
-                    selectionMode = selectionMode,
-                    onToggleSelect = { if (selectionMode) exitSelection() else selectionMode = true },
-                    coverDp = coverDp,
-                    onCycleCover = { cycleCover() },
-                    onRandom = { displayed.randomOrNull()?.let { navigator.push(Screen.Detail(it.id)) } },
-                    views = views,
-                    onApplyView = { applyView(it) },
-                    onSaveView = { viewName = ""; saveViewDialog = true },
-                    onManageViews = { manageViewsDialog = true },
-                )
-            }
+            item(span = { GridItemSpan(maxLineSpan) }) { controlsBar() }
             if (selectionMode) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Row(
@@ -433,6 +445,18 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
         }
     }
         VScrollbar(gridState)
+    } // end focus wrapper Box
+
+    // Sticky filter bar: appears at the top once the inline controls scroll away.
+    if (showPinnedControls) {
+        Box(
+            Modifier.align(Alignment.TopCenter).fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(start = 20.dp, end = 20.dp, top = 6.dp, bottom = 8.dp),
+        ) {
+            controlsBar()
+        }
+    }
     }
 
     if (bulkDialog != null) {
@@ -773,7 +797,7 @@ private fun Shelf(title: String, items: List<CollectionItem>, onItemClick: (Stri
 
 @Composable
 private fun ShelfCard(item: CollectionItem, onClick: () -> Unit) {
-    Column(Modifier.width(120.dp).clickable(onClick = onClick)) {
+    Column(Modifier.width(132.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(6.dp)) {
         CoverImage(
             url = item.thumbImage,
             contentDescription = item.title,
@@ -793,7 +817,9 @@ private fun ShelfCard(item: CollectionItem, onClick: () -> Unit) {
 
 @Composable
 private fun ItemCard(item: CollectionItem, selected: Boolean = false, focused: Boolean = false, onClick: () -> Unit) {
-    Column(Modifier.clickable(onClick = onClick)) {
+    // Clip + inner padding so the click/hover highlight is rounded and inset from
+    // the cover and title rather than touching them.
+    Column(Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(6.dp)) {
         Box {
             CoverImage(
                 url = item.thumbImage,

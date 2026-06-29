@@ -260,6 +260,10 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
 
     fun activeLoansNow(): List<Loan> = q.selectActiveLoans().executeAsList().map { it.toDomain() }
 
+    /** Every loan ever made (active + returned), newest first — the lending history. */
+    fun loanHistoryNow(): List<Loan> =
+        allLoans().filter { !it.deleted }.sortedByDescending { it.loanedAt }
+
     fun loansForItem(itemId: String): Flow<List<Loan>> =
         q.selectLoansForItem(itemId).asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
 

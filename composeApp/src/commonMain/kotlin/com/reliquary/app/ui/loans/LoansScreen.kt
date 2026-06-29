@@ -72,6 +72,8 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
                 }
                 Spacer(Modifier.width(10.dp))
             }
+            PillButton("History", null, MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onBackground) { navigator.push(Screen.LoanHistory) }
+            Spacer(Modifier.width(10.dp))
             PillButton("People", null, MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onBackground) { navigator.push(Screen.People) }
         }
         if (sorted.isEmpty()) {
@@ -104,6 +106,56 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
                 }
             }
         }
+            VScrollbar(listState)
+        }
+    }
+}
+
+@Composable
+fun LoanHistoryScreen(container: AppContainer, navigator: Navigator) {
+    val history = remember { container.repository.loanHistoryNow() }
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Text("Loan History", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Every item that has been lent out, past and present.",
+            color = ReliquaryMuted,
+            fontSize = 13.sp,
+        )
+        Spacer(Modifier.height(12.dp))
+        if (history.isEmpty()) {
+            Text("Nothing has been loaned out yet.", color = ReliquaryMuted)
+            return@Column
+        }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            val listState = rememberLazyListState()
+            LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(history, key = { it.id }) { loan ->
+                    val item = container.repository.getItem(loan.itemId)
+                    val person = container.repository.getPerson(loan.personId)
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
+                            .clickable { item?.let { navigator.push(Screen.Detail(it.id)) } }
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(item?.title ?: "Unknown item", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
+                            Text("Lent to ${person?.name ?: "someone"}", color = ReliquaryMuted, fontSize = 13.sp)
+                            val out = formatDate(loan.loanedAt)
+                            val back = loan.returnedAt?.let { "returned ${formatDate(it)}" } ?: "still out"
+                            Text("Out $out · $back", color = ReliquaryMuted, fontSize = 12.sp)
+                        }
+                        val (label, color) = if (loan.returnedAt == null) {
+                            "On loan" to MaterialTheme.colorScheme.primary
+                        } else {
+                            "Returned" to ReliquaryMuted
+                        }
+                        Text(label, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
             VScrollbar(listState)
         }
     }

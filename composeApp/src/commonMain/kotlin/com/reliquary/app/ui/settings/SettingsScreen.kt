@@ -612,44 +612,56 @@ private fun KeySection(
     initialValue: (String) -> String? = { null },
 ) {
     var active by remember { mutableStateOf(keysActive) }
+    // Collapsed by default to keep the long list of providers compact.
+    var expanded by remember { mutableStateOf(false) }
     val values = remember {
         fields.associate { it.settingKey to mutableStateOf(initialValue(it.settingKey) ?: "") }
     }
 
     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth().clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(title, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                Spacer(Modifier.height(0.dp))
                 Text(
                     text = if (active) "   ● Active" else "   ○ Not set",
                     color = if (active) MaterialTheme.colorScheme.primary else ReliquaryMuted,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = if (expanded) "▾" else "▸",
+                    color = ReliquaryMuted,
+                    fontSize = 15.sp,
                 )
             }
-            Spacer(Modifier.height(6.dp))
-            Text(help, color = ReliquaryMuted, fontSize = 12.sp)
-            Spacer(Modifier.height(10.dp))
-            fields.forEach { field ->
-                val state = values.getValue(field.settingKey)
-                OutlinedTextField(
-                    value = state.value,
-                    onValueChange = { state.value = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text(field.label) },
-                )
-                Spacer(Modifier.height(8.dp))
-            }
-            PillButton(
-                label = "Save",
-                icon = Icons.Filled.Check,
-                background = MaterialTheme.colorScheme.primary,
-                foreground = Color.White,
-            ) {
-                onSave(values.mapValues { it.value.value.trim() })
-                active = values.values.all { it.value.isNotBlank() }
+            if (expanded) {
+                Spacer(Modifier.height(6.dp))
+                Text(help, color = ReliquaryMuted, fontSize = 12.sp)
+                Spacer(Modifier.height(10.dp))
+                fields.forEach { field ->
+                    val state = values.getValue(field.settingKey)
+                    OutlinedTextField(
+                        value = state.value,
+                        onValueChange = { state.value = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text(field.label) },
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                PillButton(
+                    label = "Save",
+                    icon = Icons.Filled.Check,
+                    background = MaterialTheme.colorScheme.primary,
+                    foreground = Color.White,
+                ) {
+                    onSave(values.mapValues { it.value.value.trim() })
+                    active = values.values.all { it.value.isNotBlank() }
+                }
             }
         }
     }
