@@ -220,7 +220,10 @@ fun EditItemScreen(
             creators = creators.orNull(),
             releaseYear = year.trim().toLongOrNull(),
             description = description.orNull(),
-            coverPath = existing?.coverPath,
+            // The locally-cached cover_path wins over cover_url when displaying, so
+            // drop it whenever the URL changed — otherwise the stale cached image
+            // would keep showing and the cache wouldn't re-download the new one.
+            coverPath = if (coverUrl.orNull() == existing?.coverUrl) existing?.coverPath else null,
             coverUrl = coverUrl.orNull(),
             barcode = existing?.barcode,
             identifierType = existing?.identifierType,

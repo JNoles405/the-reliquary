@@ -25,7 +25,11 @@ class CoverCache(private val client: HttpClient) {
         runCatching {
             val bytes = withContext(Dispatchers.Default) { client.get(url).readRawBytes() }
             if (bytes.isEmpty()) return
-            val path = "${coversDir()}/${item.id}.jpg"
+            // Include a hash of the URL in the filename so a changed cover URL caches
+            // to a new file rather than reusing the old path (which the image loader
+            // may still hold a stale decoded copy of).
+            val urlTag = url.hashCode().toUInt().toString(16)
+            val path = "${coversDir()}/${item.id}-$urlTag.jpg"
             withContext(Dispatchers.Default) { writeBytesFile(path, bytes) }
             // Re-read in case the row changed meanwhile; only set the path.
             val current = repository.getItem(item.id) ?: return
