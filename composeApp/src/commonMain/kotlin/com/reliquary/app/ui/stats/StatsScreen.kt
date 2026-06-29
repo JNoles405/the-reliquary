@@ -19,7 +19,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +35,10 @@ import com.reliquary.app.domain.MediaType
 import com.reliquary.app.domain.Status
 import com.reliquary.app.domain.parseMoney
 import com.reliquary.app.metadata.ReliquaryJson
+import com.reliquary.app.tools.ValueHistory
+import com.reliquary.app.tools.ValuePoint
+import com.reliquary.app.util.DAY_MILLIS
+import com.reliquary.app.util.formatDate
 import kotlin.math.round
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.components.VScrollColumn
@@ -93,6 +101,16 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     val ratedAny = ratingDist.any { it.second > 0 }
     val maxRating = (ratingDist.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
 
+    // Record today's collection value (once/day) and load the series to chart it.
+    var valueHistory by remember { mutableStateOf<List<ValuePoint>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        valueHistory = if (collectionValue > 0) {
+            ValueHistory.record(container.repository, collectionValue, now)
+        } else {
+            ValueHistory.load(container.repository)
+        }
+    }
+
     VScrollColumn(contentPadding = PaddingValues(20.dp)) {
         Text("Library Stats", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)
         Spacer(Modifier.height(16.dp))
@@ -113,6 +131,25 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
         if (topGenres.isNotEmpty()) StatSection("Top genres", topGenres, maxGenre)
         if (byDecade.isNotEmpty()) StatSection("By decade", byDecade, maxDecade)
         if (ratedAny) StatSection("Your ratings", ratingDist, maxRating)
+
+        if (valueHistory.size >= 2) {
+            val maxValue = valueHistory.maxOf { it.value }.coerceAtLeast(0.01)
+            Spacer(Modifier.height(24.dp))
+            Text("Collection value over time", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(Modifier.height(10.dp))
+            valueHistory.takeLast(14).forEach { point ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(formatDate(point.day * DAY_MILLIS), color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp, modifier = Modifier.width(96.dp))
+                    Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                        Box(
+                            Modifier.fillMaxWidth((point.value / maxValue).toFloat().coerceIn(0f, 1f))
+                                .height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.primary),
+                        )
+                    }
+                    Text("$" + (round(point.value * 100) / 100.0), color = ReliquaryMuted, fontSize = 13.sp, modifier = Modifier.width(72.dp).padding(start = 10.dp))
+                }
+            }
+        }
     }
 }
 

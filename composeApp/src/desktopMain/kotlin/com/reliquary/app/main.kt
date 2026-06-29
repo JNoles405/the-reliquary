@@ -6,6 +6,11 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -14,10 +19,13 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.reliquary.app.data.createDesktopDriver
+import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
+import com.reliquary.app.ui.CommandPalette
 import com.reliquary.app.ui.theme.ReliquaryLogo
 import com.reliquary.app.util.DesktopWindowHolder
 import com.reliquary.app.util.WINDOW_MODE_SETTING
+import com.reliquary.app.util.showDesktopNotification
 import com.reliquary.app.util.workArea
 
 fun main() {
@@ -28,6 +36,14 @@ fun main() {
     // rather than WindowPlacement.Maximized, which (for an undecorated window)
     // covers the Windows taskbar.
     val wa = workArea()
+    // Nudge about overdue loans at startup.
+    val overdue = container.repository.activeLoansNow().count { it.isOverdue(nowMillis()) }
+    if (overdue > 0) {
+        showDesktopNotification(
+            "The Reliquary — overdue loans",
+            "$overdue ${if (overdue == 1) "item is" else "items are"} overdue. Open Loans to follow up.",
+        )
+    }
     application {
         val state = rememberWindowState(
             placement = WindowPlacement.Floating,
@@ -42,6 +58,14 @@ fun main() {
             state = state,
             undecorated = true,
             resizable = true,
+            onKeyEvent = { e ->
+                if (e.type == KeyEventType.KeyDown && e.isCtrlPressed && e.key == Key.K) {
+                    CommandPalette.open = true
+                    true
+                } else {
+                    false
+                }
+            },
         ) {
             Column(Modifier.fillMaxSize()) {
                 // Always show the custom title bar so the window controls (incl. close)

@@ -33,11 +33,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.MediaType
+import com.reliquary.app.csv.CSV_TARGET_FIELDS
+import com.reliquary.app.csv.autoMapColumns
+import com.reliquary.app.csv.parseCsv
 import com.reliquary.app.sync.defaultSyncFilePath
 import com.reliquary.app.sync.readTextFile
 import com.reliquary.app.sync.writeTextFile
 import com.reliquary.app.ui.Navigator
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.width
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.util.openUrl
@@ -57,6 +61,10 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
     var importType by remember { mutableStateOf(MediaType.MOVIES) }
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    // Column-mapping state (for CSVs whose headers we don't auto-recognize).
+    var headers by remember { mutableStateOf<List<String>>(emptyList()) }
+    var rawText by remember { mutableStateOf<String?>(null) }
+    var mapping by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
     VScrollColumn(
         contentPadding = PaddingValues(20.dp),
@@ -106,6 +114,51 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
                         "Imported $count ${if (count == 1) "item" else "items"} as ${importType.displayName}."
                     }.getOrElse { "Import failed: ${it.message}" }
                     busy = false
+                }
+            }
+        }
+
+        PillButton(label = "Map columns manually…", icon = null, background = MaterialTheme.colorScheme.surface, foreground = MaterialTheme.colorScheme.onBackground) {
+            if (busy) return@PillButton
+            scope.launch {
+                val text = withContext(Dispatchers.Default) { readTextFile(path) }
+                if (text == null) { status = "No file found at:\n$path"; return@launch }
+                val rows = withContext(Dispatchers.Default) { parseCsv(text) }
+                if (rows.isEmpty()) { status = "The file looks empty."; return@launch }
+                rawText = text
+                headers = rows.first().map { it.trim() }
+                mapping = autoMapColumns(headers)
+                status = null
+            }
+        }
+
+        if (headers.isNotEmpty()) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Map columns", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Pick which CSV column feeds each field. Auto-detected guesses are filled in.", color = ReliquaryMuted, fontSize = 12.sp)
+                    CSV_TARGET_FIELDS.forEach { (field, _) ->
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Text(field, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp, modifier = Modifier.width(130.dp))
+                            ColumnPicker(headers, mapping[field]) { idx ->
+                                mapping = if (idx == null) mapping - field else mapping + (field to idx)
+                            }
+                        }
+                    }
+                    PillButton(label = "Import with this mapping", icon = null, background = MaterialTheme.colorScheme.primary, foreground = Color.Black) {
+                        if (busy) return@PillButton
+                        val text = rawText ?: return@PillButton
+                        if (mapping["Title"] == null) { status = "Map the Title column first."; return@PillButton }
+                        busy = true
+                        scope.launch {
+                            status = runCatching {
+                                val n = withContext(Dispatchers.Default) { container.csvService.importCsvMapped(text, importType, mapping) }
+                                "Imported $n ${if (n == 1) "item" else "items"} using your mapping."
+                            }.getOrElse { "Import failed: ${it.message}" }
+                            headers = emptyList(); rawText = null
+                            busy = false
+                        }
+                    }
                 }
             }
         }
@@ -219,6 +272,26 @@ private fun LetterboxdSection(container: AppContainer) {
                 }
             }
             status?.let { Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp) }
+        }
+    }
+}
+
+@Composable
+private fun ColumnPicker(headers: List<String>, selectedIdx: Int?, onSelect: (Int?) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val label = selectedIdx?.let { headers.getOrNull(it) } ?: "— none —"
+    Box {
+        Box(
+            Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { expanded = true }.padding(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            Text(label, color = Color.White, fontSize = 13.sp)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(text = { Text("— none —") }, onClick = { onSelect(null); expanded = false })
+            headers.forEachIndexed { idx, header ->
+                DropdownMenuItem(text = { Text(header.ifBlank { "(column ${idx + 1})" }) }, onClick = { onSelect(idx); expanded = false })
+            }
         }
     }
 }

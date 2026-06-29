@@ -77,6 +77,7 @@ fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {})
     val activeLoans by remember { container.repository.activeLoans() }.collectAsState(emptyList())
     val overdueCount = activeLoans.count { it.dueAt != null && it.dueAt < nowMillis() }
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -127,6 +128,15 @@ fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {})
                 Screen.Backups -> com.reliquary.app.ui.tools.BackupScreen(container, navigator)
             }
         }
+    }
+        CommandPaletteOverlay(
+            container = container,
+            navigator = navigator,
+            onSelectBuiltin = {
+                activeTab = ActiveTab.Builtin(it)
+                navigator.resetTo(Screen.Library)
+            },
+        )
     }
 }
 

@@ -70,36 +70,57 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
         val listState = rememberLazyListState()
         LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(sorted, key = { it.id }) { loan ->
-                val item = container.repository.getItem(loan.itemId)
-                val person = container.repository.getPerson(loan.personId)
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
-                        .clickable { item?.let { navigator.push(Screen.Detail(it.id)) } }
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            item?.title ?: "Unknown item",
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text("Borrowed by ${person?.name ?: "someone"}", color = ReliquaryMuted, fontSize = 13.sp)
-                        val (text, urgent) = dueLabel(loan, now)
-                        Text(text, color = if (urgent) MaterialTheme.colorScheme.primary else ReliquaryMuted, fontSize = 12.sp, fontWeight = if (urgent) FontWeight.Bold else FontWeight.Normal)
-                    }
-                    PillButton(
-                        label = "Return",
-                        icon = null,
-                        background = MaterialTheme.colorScheme.primary,
-                        foreground = Color.Black,
-                    ) { container.repository.markLoanReturned(loan.id) }
+            val sections = listOf(
+                "Overdue" to sorted.filter { dayDelta(it, now) < 0 },
+                "Due this week" to sorted.filter { dayDelta(it, now) in 0..7 },
+                "Later" to sorted.filter { it.dueAt != null && dayDelta(it, now) > 7 },
+                "No due date" to sorted.filter { it.dueAt == null },
+            )
+            sections.forEach { (title, group) ->
+                if (group.isNotEmpty()) {
+                    item(key = "header-$title") { LoanSectionHeader(title, group.size) }
+                    items(group, key = { it.id }) { loan -> LoanRow(container, loan, now, navigator) }
                 }
             }
         }
             VScrollbar(listState)
         }
+    }
+}
+
+@Composable
+private fun LoanSectionHeader(title: String, count: Int) {
+    Text(
+        "$title ($count)",
+        color = if (title == "Overdue") MaterialTheme.colorScheme.primary else ReliquaryMuted,
+        fontWeight = FontWeight.Bold,
+        fontSize = 14.sp,
+        modifier = Modifier.padding(top = 6.dp),
+    )
+}
+
+@Composable
+private fun LoanRow(container: AppContainer, loan: Loan, now: Long, navigator: Navigator) {
+    val item = container.repository.getItem(loan.itemId)
+    val person = container.repository.getPerson(loan.personId)
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
+            .clickable { item?.let { navigator.push(Screen.Detail(it.id)) } }
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(item?.title ?: "Unknown item", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
+            Text("Borrowed by ${person?.name ?: "someone"}", color = ReliquaryMuted, fontSize = 13.sp)
+            val (text, urgent) = dueLabel(loan, now)
+            Text(text, color = if (urgent) MaterialTheme.colorScheme.primary else ReliquaryMuted, fontSize = 12.sp, fontWeight = if (urgent) FontWeight.Bold else FontWeight.Normal)
+        }
+        PillButton(
+            label = "Return",
+            icon = null,
+            background = MaterialTheme.colorScheme.primary,
+            foreground = Color.Black,
+        ) { container.repository.markLoanReturned(loan.id) }
     }
 }
 
