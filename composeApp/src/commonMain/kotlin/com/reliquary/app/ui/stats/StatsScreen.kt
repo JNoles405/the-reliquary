@@ -117,6 +117,13 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     }
     val maxPeople = (topPeople.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
 
+    val addedByMonth = remember(items) {
+        items.filter { !it.wanted && it.addedAt > 0 }
+            .groupingBy { formatDate(it.addedAt).substring(0, 7) }.eachCount()
+            .toList().sortedBy { it.first }.takeLast(12)
+    }
+    val maxAdded = (addedByMonth.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
+
     // Record today's collection value (once/day) and load the series to chart it.
     var valueHistory by remember { mutableStateOf<List<ValuePoint>>(emptyList()) }
     LaunchedEffect(Unit) {
@@ -164,6 +171,7 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
         if (byDecade.isNotEmpty()) StatSection("By decade", byDecade, maxDecade)
         if (ratedAny) StatSection("Your ratings", ratingDist, maxRating)
         if (topPeople.isNotEmpty()) StatSection("Most-collected people", topPeople, maxPeople)
+        if (addedByMonth.size >= 2) StatSection("Added per month", addedByMonth, maxAdded)
 
         if (valueHistory.size >= 2) {
             val maxValue = valueHistory.maxOf { it.value }.coerceAtLeast(0.01)

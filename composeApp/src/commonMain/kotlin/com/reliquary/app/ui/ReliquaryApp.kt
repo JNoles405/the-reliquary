@@ -67,7 +67,9 @@ import com.reliquary.app.ui.theme.ReliquaryMuted
 
 @Composable
 fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {}) {
-    val navigator = rememberNavigator()
+    val navigator = rememberNavigator(
+        if (container.repository.getSetting("ui.startOnHome") != "false") Screen.Home else Screen.Library,
+    )
     var activeTab by remember {
         val defaultType = container.repository.getSetting("ui.defaultTab")
             ?.let { name -> MediaType.entries.firstOrNull { it.name == name } } ?: MediaType.MOVIES

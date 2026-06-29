@@ -108,18 +108,26 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     var onLoanOnly by remember(active) { mutableStateOf(false) }
     var unfinishedOnly by remember(active) { mutableStateOf(false) }
     var wishlistOnly by remember(active) { mutableStateOf(false) }
+    var statusFilter by remember(active) { mutableStateOf<String?>(null) }
     var genre by remember(active) { mutableStateOf<String?>(null) }
 
     val genres = remember(items) {
         items.flatMap { it.genres?.split(",").orEmpty() }
             .map { it.trim() }.filter { it.isNotBlank() }.distinct().sorted()
     }
-    val displayed = remember(items, sort, favoritesOnly, onLoanOnly, unfinishedOnly, wishlistOnly, genre, onLoanIds) {
+    val statusOptions = remember(active, items) {
+        when (active) {
+            is ActiveTab.Builtin -> Status.optionsFor(active.type.name)
+            is ActiveTab.Custom -> items.mapNotNull { it.status }.distinct()
+        }
+    }
+    val displayed = remember(items, sort, favoritesOnly, onLoanOnly, unfinishedOnly, wishlistOnly, statusFilter, genre, onLoanIds) {
         val filtered = items.filter { item ->
             (if (wishlistOnly) item.wanted else !item.wanted) &&
                 (!favoritesOnly || item.favorite) &&
                 (!onLoanOnly || item.id in onLoanIds) &&
                 (!unfinishedOnly || item.status !in Status.DONE) &&
+                (statusFilter == null || item.status == statusFilter) &&
                 (genre == null || item.genres?.contains(genre!!, ignoreCase = true) == true)
         }.sortedWith(sort.comparator())
         // In the wishlist view, surface higher-priority wants first (stable).
@@ -193,6 +201,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     onLoanOnly = onLoanOnly, onLoan = { onLoanOnly = !onLoanOnly },
                     unfinishedOnly = unfinishedOnly, onUnfinished = { unfinishedOnly = !unfinishedOnly },
                     wishlistOnly = wishlistOnly, onWishlist = { wishlistOnly = !wishlistOnly },
+                    statuses = statusOptions, statusFilter = statusFilter, onStatus = { statusFilter = it },
                     genres = genres, genre = genre, onGenre = { genre = it },
                     selectionMode = selectionMode,
                     onToggleSelect = { if (selectionMode) exitSelection() else selectionMode = true },
@@ -225,6 +234,13 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                         PillButton("Set location…", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
                             if (selected.isNotEmpty()) { bulkText = ""; bulkDialog = "location" }
                         }
+                        PillButton("★ Favorite", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                            val now = nowMillis()
+                            selected.toList().forEach { id ->
+                                container.repository.getItem(id)?.let { container.repository.upsertItem(it.copy(favorite = true, updatedAt = now)) }
+                            }
+                            exitSelection()
+                        }
                         PillButton("Mark finished", null, MaterialTheme.colorScheme.primary, Color.Black) {
                             selected.toList().forEach { id ->
                                 container.repository.getItem(id)?.let {
@@ -243,7 +259,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     }
                 }
             }
-            val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && !wishlistOnly && genre == null
+            val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && !wishlistOnly && genre == null && statusFilter == null
             if (showShelves) {
                 val owned = items.filter { !it.wanted }
                 val continueItems = owned.filter { it.status in Status.IN_PROGRESS }
@@ -450,6 +466,9 @@ private fun Controls(
     onUnfinished: () -> Unit,
     wishlistOnly: Boolean,
     onWishlist: () -> Unit,
+    statuses: List<String>,
+    statusFilter: String?,
+    onStatus: (String?) -> Unit,
     genres: List<String>,
     genre: String?,
     onGenre: (String?) -> Unit,
@@ -481,6 +500,14 @@ private fun Controls(
         FilterChip("On loan", onLoanOnly, onLoan)
         FilterChip("Unfinished", unfinishedOnly, onUnfinished)
         FilterChip("Wishlist", wishlistOnly, onWishlist)
+        if (statuses.isNotEmpty()) {
+            MenuChip(statusFilter?.let { "Status: $it" } ?: "Status") { dismiss ->
+                DropdownMenuItem(text = { Text("All statuses") }, onClick = { onStatus(null); dismiss() })
+                statuses.forEach { s ->
+                    DropdownMenuItem(text = { Text(s) }, onClick = { onStatus(s); dismiss() })
+                }
+            }
+        }
         if (genres.isNotEmpty()) {
             MenuChip(genre?.let { "Genre: $it" } ?: "Genre") { dismiss ->
                 DropdownMenuItem(text = { Text("All genres") }, onClick = { onGenre(null); dismiss() })

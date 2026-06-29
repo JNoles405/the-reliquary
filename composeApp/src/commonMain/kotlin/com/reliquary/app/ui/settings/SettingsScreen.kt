@@ -123,6 +123,20 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
         }
 
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                var startHome by remember { mutableStateOf(container.repository.getSetting("ui.startOnHome") != "false") }
+                Switch(
+                    checked = startHome,
+                    onCheckedChange = {
+                        startHome = it
+                        container.repository.setSetting("ui.startOnHome", if (it) "true" else "false")
+                    },
+                )
+                Text("  Open to the Home dashboard on launch", color = MaterialTheme.colorScheme.onBackground)
+            }
+        }
+
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
             Column {
                 Text("Accent color", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Spacer(Modifier.height(10.dp))
@@ -135,6 +149,20 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                             Modifier.size(34.dp).clip(CircleShape).background(option.color)
                                 .clickable { onAccentChange(option.color.toRgbHex()) },
                         )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                var hex by remember { mutableStateOf("") }
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = hex,
+                        onValueChange = { hex = it.removePrefix("#").filter { c -> c.isLetterOrDigit() }.take(6).uppercase() },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        label = { Text("Custom hex (e.g. 14B8A6)") },
+                    )
+                    PillButton("Apply", null, MaterialTheme.colorScheme.primary, Color.Black) {
+                        if (hex.matches(Regex("[0-9A-Fa-f]{6}"))) onAccentChange(hex.uppercase())
                     }
                 }
             }

@@ -50,4 +50,4 @@ class Navigator(initial: Screen) {
 }
 
 @Composable
-fun rememberNavigator(): Navigator = remember { Navigator(Screen.Library) }
+fun rememberNavigator(initial: Screen = Screen.Library): Navigator = remember { Navigator(initial) }
