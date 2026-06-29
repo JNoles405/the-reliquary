@@ -24,6 +24,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -150,6 +151,14 @@ fun EditItemScreen(
     var tags by remember(itemId) { mutableStateOf(existing?.tags ?: "") }
     var series by remember(itemId) { mutableStateOf(existingExtras[SERIES_KEY] ?: "") }
     var seriesNum by remember(itemId) { mutableStateOf(existingExtras[SERIES_NUM_KEY] ?: "") }
+    // User-defined custom fields, stored in extras under a "cf:" namespace.
+    val customFields = remember(itemId) {
+        androidx.compose.runtime.mutableStateListOf<Pair<MutableState<String>, MutableState<String>>>().apply {
+            existingExtras.filterKeys { it.startsWith("cf:") }.forEach { (k, v) ->
+                add(mutableStateOf(k.removePrefix("cf:")) to mutableStateOf(v))
+            }
+        }
+    }
 
     fun save() {
         if (title.isBlank()) return
@@ -163,6 +172,13 @@ fun EditItemScreen(
         }
         if (series.isBlank()) extras.remove(SERIES_KEY) else extras[SERIES_KEY] = series.trim()
         if (seriesNum.isBlank()) extras.remove(SERIES_NUM_KEY) else extras[SERIES_NUM_KEY] = seriesNum.trim()
+        // Rewrite the user's custom fields.
+        extras.keys.filter { it.startsWith("cf:") }.toList().forEach { extras.remove(it) }
+        customFields.forEach { (name, value) ->
+            val n = name.value.trim()
+            val v = value.value.trim()
+            if (n.isNotBlank() && v.isNotBlank()) extras["cf:$n"] = v
+        }
         val mergedExtraJson = if (extras.isEmpty()) null else ReliquaryJson.encodeToString(extras)
         val normalizedTags = parseTags(tags).joinToString(", ").ifBlank { null }
         val item = CollectionItem(
@@ -257,6 +273,26 @@ fun EditItemScreen(
             val state = valueStates.getValue(key)
             Field(key, state.value) { state.value = it }
         }
+
+        Text("Custom fields", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        customFields.forEachIndexed { index, (name, value) ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(name.value, { name.value = it }, Modifier.weight(1f), singleLine = true, label = { Text("Field") })
+                OutlinedTextField(value.value, { value.value = it }, Modifier.weight(1.4f), singleLine = true, label = { Text("Value") })
+                Text(
+                    "✕",
+                    color = ReliquaryMuted,
+                    fontSize = 18.sp,
+                    modifier = Modifier.clickable { customFields.removeAt(index) }.padding(8.dp),
+                )
+            }
+        }
+        PillButton(
+            label = "Add custom field",
+            icon = null,
+            background = MaterialTheme.colorScheme.surfaceVariant,
+            foreground = MaterialTheme.colorScheme.onBackground,
+        ) { customFields.add(mutableStateOf("") to mutableStateOf("")) }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Switch(checked = favorite, onCheckedChange = { favorite = it })

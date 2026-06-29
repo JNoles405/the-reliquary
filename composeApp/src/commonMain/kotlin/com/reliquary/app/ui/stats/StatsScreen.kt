@@ -61,6 +61,7 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     val overdue = loans.count { it.dueAt != null && it.dueAt < now }
     val finished = items.count { !it.wanted && it.status in Status.DONE }
     val finishedPct = if (owned > 0) finished * 100 / owned else 0
+    val goal = remember { container.repository.getSetting("stats.completionGoal")?.toIntOrNull() ?: 0 }
     val collectionValue = remember(items) {
         items.filter { !it.wanted }.sumOf { item ->
             parseMoney(
@@ -124,6 +125,22 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
             StatCard("Overdue", overdue.toString())
             if (collectionValue > 0) {
                 StatCard("Collection value", "$" + (round(collectionValue * 100) / 100.0))
+            }
+            if (goal > 0) StatCard("Goal", "$finished / $goal")
+        }
+
+        if (goal > 0) {
+            Spacer(Modifier.height(16.dp))
+            val pct = (finished.toFloat() / goal).coerceIn(0f, 1f)
+            Text(
+                "Completion goal — ${(pct * 100).toInt()}%" + if (finished >= goal) " · reached! 🎉" else "",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+            )
+            Spacer(Modifier.height(8.dp))
+            Box(Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                Box(Modifier.fillMaxWidth(pct).height(12.dp).clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.primary))
             }
         }
 

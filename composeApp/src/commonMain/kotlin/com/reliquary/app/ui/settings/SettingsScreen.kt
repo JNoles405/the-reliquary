@@ -50,6 +50,7 @@ import androidx.compose.material3.Switch
 import com.reliquary.app.sync.defaultSyncFilePath
 import com.reliquary.app.sync.writeTextFile
 import com.reliquary.app.tools.CatalogExporter
+import com.reliquary.app.tools.ValueReportExporter
 import com.reliquary.app.update.UpdateStatus
 import com.reliquary.app.update.downloadAndInstallUpdate
 import com.reliquary.app.update.isAutoUpdateSupported
@@ -216,6 +217,47 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             }
         }
         catalogMsg?.let { Text(it, color = ReliquaryMuted, fontSize = 12.sp) }
+
+        var reportMsg by remember { mutableStateOf<String?>(null) }
+        PillButton(
+            label = "Export value report (insurance)",
+            icon = Icons.Filled.SyncAlt,
+            background = MaterialTheme.colorScheme.surface,
+            foreground = MaterialTheme.colorScheme.onBackground,
+        ) {
+            scope.launch {
+                val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-value-report.html")
+                runCatching {
+                    val html = withContext(Dispatchers.Default) {
+                        ValueReportExporter.buildHtml(container.repository.allItems())
+                    }
+                    withContext(Dispatchers.Default) { writeTextFile(path, html) }
+                }.onSuccess {
+                    reportMsg = "Value report saved to:\n$path"
+                    if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
+                }.onFailure { reportMsg = "Export failed: ${it.message}" }
+            }
+        }
+        reportMsg?.let { Text(it, color = ReliquaryMuted, fontSize = 12.sp) }
+
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
+            Column {
+                Text("Collection goal", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Spacer(Modifier.height(4.dp))
+                Text("How many items you're aiming to finish. Progress shows in Stats.", color = ReliquaryMuted, fontSize = 12.sp)
+                Spacer(Modifier.height(10.dp))
+                var goal by remember { mutableStateOf(container.repository.getSetting("stats.completionGoal") ?: "") }
+                OutlinedTextField(
+                    value = goal,
+                    onValueChange = { v ->
+                        goal = v.filter { it.isDigit() }
+                        container.repository.setSetting("stats.completionGoal", goal.ifBlank { null })
+                    },
+                    singleLine = true,
+                    label = { Text("Finish goal (number)") },
+                )
+            }
+        }
 
         KeySection(
             title = "TMDB — Movies",

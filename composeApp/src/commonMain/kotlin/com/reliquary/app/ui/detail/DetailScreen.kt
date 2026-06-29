@@ -17,10 +17,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.reliquary.app.data.newId
 import com.reliquary.app.data.nowMillis
 import com.reliquary.app.domain.Status
 import kotlinx.serialization.encodeToString
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
@@ -101,10 +103,11 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
     val editionKeys = remember { EDITION_FIELDS.toSet() }
     val valueKeys = remember { VALUE_FIELDS.toSet() }
     val providerExtras = allExtras.filter {
-        it.first !in editionKeys && it.first !in valueKeys && !it.first.startsWith("_")
+        it.first !in editionKeys && it.first !in valueKeys && !it.first.startsWith("_") && !it.first.startsWith("cf:")
     }
     val editionExtras = allExtras.filter { it.first in editionKeys }
     val valueExtras = allExtras.filter { it.first in valueKeys }
+    val customExtras = allExtras.filter { it.first.startsWith("cf:") }
     val backdrop = allExtras.firstOrNull { it.first == "_backdrop" }?.second
     val serverPlayUrl = allExtras.firstOrNull { it.first == "_serverPlayUrl" }?.second
     val serverName = allExtras.firstOrNull { it.first == "_server" }?.second
@@ -214,6 +217,23 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                         background = MaterialTheme.colorScheme.primary,
                         foreground = Color.Black,
                     ) { openUrl(serverPlayUrl) }
+                }
+                PillButton(
+                    label = "Duplicate",
+                    icon = Icons.Filled.ContentCopy,
+                    background = MaterialTheme.colorScheme.surfaceVariant,
+                    foreground = MaterialTheme.colorScheme.onBackground,
+                ) {
+                    val now = nowMillis()
+                    val copy = current.copy(
+                        id = newId(),
+                        title = current.title + " (copy)",
+                        coverPath = null,
+                        addedAt = now,
+                        updatedAt = now,
+                    )
+                    container.repository.upsertItem(copy)
+                    navigator.push(Screen.Detail(copy.id))
                 }
                 PillButton(
                     label = "Delete",
@@ -398,6 +418,18 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 )
                 Spacer(Modifier.height(6.dp))
                 valueExtras.forEach { (label, value) -> MetaRow(label, value) }
+            }
+
+            if (customExtras.isNotEmpty()) {
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    "Custom Fields",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                )
+                Spacer(Modifier.height(6.dp))
+                customExtras.forEach { (label, value) -> MetaRow(label.removePrefix("cf:"), value) }
             }
 
             current.notes?.takeIf { it.isNotBlank() }?.let {
