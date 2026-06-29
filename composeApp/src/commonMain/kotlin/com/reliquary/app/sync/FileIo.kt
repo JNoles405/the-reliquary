@@ -11,3 +11,11 @@ expect fun readTextFile(path: String): String?
 expect fun coversDir(): String
 
 expect fun writeBytesFile(path: String, bytes: ByteArray)
+
+/** A saved JSON file in the app-data dir (backups / sync snapshots). */
+data class BackupFile(val path: String, val name: String, val sizeBytes: Long, val modifiedAt: Long)
+
+/** List JSON snapshots in the app-data dir, newest first. */
+expect fun listBackups(): List<BackupFile>
+
+expect fun deleteFile(path: String)

@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.SERIES_KEY
@@ -118,13 +119,16 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     }
     val featured = displayed.firstOrNull() ?: items.firstOrNull()
     val canImport = active is ActiveTab.Builtin
+    // A stable random sample to resurface older items; reshuffles only when the library changes.
+    val rediscover = remember(items) { items.filter { !it.wanted }.shuffled().take(12) }
 
     var selectionMode by remember(active) { mutableStateOf(false) }
     val selected = remember(active) { mutableStateListOf<String>() }
     fun exitSelection() { selectionMode = false; selected.clear() }
 
-    var bulkDialog by remember(active) { mutableStateOf<String?>(null) } // "tag" | "series"
+    var bulkDialog by remember(active) { mutableStateOf<String?>(null) } // "tag" | "series" | "location"
     var bulkText by remember(active) { mutableStateOf("") }
+    var statusDialog by remember(active) { mutableStateOf(false) }
 
     val viewsStore = remember { SmartViewsStore(container.repository) }
     var views by remember { mutableStateOf(viewsStore.list()) }
@@ -196,7 +200,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
             if (selectionMode) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Row(
-                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -206,6 +210,12 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                         }
                         PillButton("Add to series…", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
                             if (selected.isNotEmpty()) { bulkText = ""; bulkDialog = "series" }
+                        }
+                        PillButton("Set status…", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                            if (selected.isNotEmpty()) statusDialog = true
+                        }
+                        PillButton("Set location…", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                            if (selected.isNotEmpty()) { bulkText = ""; bulkDialog = "location" }
                         }
                         PillButton("Mark finished", null, MaterialTheme.colorScheme.primary, Color.Black) {
                             selected.toList().forEach { id ->
@@ -240,6 +250,11 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                 if (recent.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Shelf("Recently Added", recent) { navigator.push(Screen.Detail(it)) }
+                    }
+                }
+                if (rediscover.size >= 4) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Shelf("Rediscover", rediscover) { navigator.push(Screen.Detail(it)) }
                     }
                 }
                 if (favorites.isNotEmpty()) {
@@ -287,17 +302,32 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     }
 
     if (bulkDialog != null) {
+        val kind = bulkDialog
         AlertDialog(
             onDismissRequest = { bulkDialog = null },
             title = {
-                Text(if (bulkDialog == "tag") "Tag ${selected.size} items" else "Add ${selected.size} items to series")
+                Text(
+                    when (kind) {
+                        "tag" -> "Tag ${selected.size} items"
+                        "location" -> "Set location for ${selected.size} items"
+                        else -> "Add ${selected.size} items to series"
+                    },
+                )
             },
             text = {
                 OutlinedTextField(
                     value = bulkText,
                     onValueChange = { bulkText = it },
                     singleLine = true,
-                    label = { Text(if (bulkDialog == "tag") "Tag" else "Series name") },
+                    label = {
+                        Text(
+                            when (kind) {
+                                "tag" -> "Tag"
+                                "location" -> "Location (shelf / box)"
+                                else -> "Series name"
+                            },
+                        )
+                    },
                 )
             },
             confirmButton = {
@@ -305,8 +335,13 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     val t = bulkText.trim()
                     if (t.isNotBlank()) {
                         selected.toList().forEach { id ->
-                            if (bulkDialog == "tag") container.repository.addTag(id, t)
-                            else container.repository.setExtra(id, SERIES_KEY, t)
+                            when (kind) {
+                                "tag" -> container.repository.addTag(id, t)
+                                "location" -> container.repository.getItem(id)?.let {
+                                    container.repository.upsertItem(it.copy(location = t, updatedAt = nowMillis()))
+                                }
+                                else -> container.repository.setExtra(id, SERIES_KEY, t)
+                            }
                         }
                     }
                     bulkDialog = null
@@ -314,6 +349,33 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                 }) { Text("Apply") }
             },
             dismissButton = { TextButton(onClick = { bulkDialog = null }) { Text("Cancel") } },
+        )
+    }
+
+    if (statusDialog) {
+        val typeName = selected.firstOrNull()?.let { container.repository.getItem(it)?.mediaType }
+            ?: (active as? ActiveTab.Builtin)?.type?.name
+        val options = typeName?.let { Status.optionsFor(it) }.orEmpty()
+        AlertDialog(
+            onDismissRequest = { statusDialog = false },
+            title = { Text("Set status for ${selected.size} items") },
+            text = {
+                Column {
+                    (options + "Clear status").forEach { opt ->
+                        Text(
+                            opt,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                val value = if (opt == "Clear status") null else opt
+                                selected.toList().forEach { id -> container.repository.updateStatus(id, value) }
+                                statusDialog = false
+                                exitSelection()
+                            }.padding(vertical = 12.dp),
+                        )
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { statusDialog = false }) { Text("Cancel") } },
         )
     }
 

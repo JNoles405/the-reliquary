@@ -182,6 +182,13 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
         ) { navigator.push(Screen.Servers) }
 
         PillButton(
+            label = "Backups",
+            icon = Icons.Filled.SyncAlt,
+            background = MaterialTheme.colorScheme.surface,
+            foreground = MaterialTheme.colorScheme.onBackground,
+        ) { navigator.push(Screen.Backups) }
+
+        PillButton(
             label = "Find duplicates",
             icon = Icons.Filled.Refresh,
             background = MaterialTheme.colorScheme.surface,

@@ -19,3 +19,13 @@ actual fun coversDir(): String =
 actual fun writeBytesFile(path: String, bytes: ByteArray) {
     File(path).writeBytes(bytes)
 }
+
+actual fun listBackups(): List<BackupFile> =
+    desktopDataDir().listFiles { f -> f.isFile && f.extension == "json" }
+        ?.map { BackupFile(it.absolutePath, it.name, it.length(), it.lastModified()) }
+        ?.sortedByDescending { it.modifiedAt }
+        ?: emptyList()
+
+actual fun deleteFile(path: String) {
+    File(path).delete()
+}

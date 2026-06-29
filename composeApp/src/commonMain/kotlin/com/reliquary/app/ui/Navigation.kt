@@ -30,6 +30,7 @@ sealed interface Screen {
     data object Settings : Screen
     data object Servers : Screen
     data object Duplicates : Screen
+    data object Backups : Screen
 }
 
 class Navigator(initial: Screen) {

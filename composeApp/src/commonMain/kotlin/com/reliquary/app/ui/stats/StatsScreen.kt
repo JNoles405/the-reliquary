@@ -69,6 +69,30 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     if (customCount > 0) typeCounts.add("Custom" to customCount)
     val maxTypeCount = (typeCounts.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
 
+    val topGenres = remember(items) {
+        items.flatMap { it.genres?.split(",").orEmpty() }.map { it.trim() }.filter { it.isNotBlank() }
+            .groupingBy { it }.eachCount().toList().sortedByDescending { it.second }.take(8)
+    }
+    val maxGenre = (topGenres.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
+
+    val byDecade = remember(items) {
+        items.filter { !it.wanted && it.releaseYear != null }
+            .groupBy { (it.releaseYear!! / 10) * 10 }
+            .map { (decade, list) -> "${decade}s" to list.size }
+            .sortedBy { it.first }
+    }
+    val maxDecade = (byDecade.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
+
+    val ratingDist = remember(items) {
+        (5 downTo 1).map { star ->
+            "$star★" to items.count { item ->
+                item.extraJson?.let { Regex("\"_myRating\"\\s*:\\s*\"?(\\d)\"?").find(it)?.groupValues?.get(1)?.toIntOrNull() } == star
+            }
+        }
+    }
+    val ratedAny = ratingDist.any { it.second > 0 }
+    val maxRating = (ratingDist.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
+
     VScrollColumn(contentPadding = PaddingValues(20.dp)) {
         Text("Library Stats", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp)
         Spacer(Modifier.height(16.dp))
@@ -85,21 +109,32 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-        Text("By category", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        Spacer(Modifier.height(10.dp))
-        typeCounts.forEach { (label, count) ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text(label, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, modifier = Modifier.width(90.dp))
-                Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
-                    Box(
-                        Modifier.fillMaxWidth(count.toFloat() / maxTypeCount)
-                            .height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.primary),
-                    )
-                }
-                Text(count.toString(), color = ReliquaryMuted, fontSize = 14.sp, modifier = Modifier.width(40.dp).padding(start = 10.dp))
-            }
+        StatSection("By category", typeCounts, maxTypeCount)
+        if (topGenres.isNotEmpty()) StatSection("Top genres", topGenres, maxGenre)
+        if (byDecade.isNotEmpty()) StatSection("By decade", byDecade, maxDecade)
+        if (ratedAny) StatSection("Your ratings", ratingDist, maxRating)
+    }
+}
+
+@Composable
+private fun StatSection(title: String, rows: List<Pair<String, Int>>, max: Int) {
+    Spacer(Modifier.height(24.dp))
+    Text(title, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+    Spacer(Modifier.height(10.dp))
+    rows.forEach { (label, count) -> BarRow(label, count, max) }
+}
+
+@Composable
+private fun BarRow(label: String, count: Int, max: Int) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Text(label, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, modifier = Modifier.width(96.dp))
+        Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+            Box(
+                Modifier.fillMaxWidth((count.toFloat() / max).coerceIn(0f, 1f))
+                    .height(10.dp).clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.primary),
+            )
         }
+        Text(count.toString(), color = ReliquaryMuted, fontSize = 14.sp, modifier = Modifier.width(40.dp).padding(start = 10.dp))
     }
 }
 
