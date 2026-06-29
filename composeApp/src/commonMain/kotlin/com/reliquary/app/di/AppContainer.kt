@@ -5,8 +5,10 @@ import com.reliquary.app.csv.CsvService
 import com.reliquary.app.data.ReliquaryRepository
 import com.reliquary.app.db.ReliquaryDatabase
 import com.reliquary.app.images.CoverCache
+import com.reliquary.app.integrations.DiscogsImporter
 import com.reliquary.app.integrations.LetterboxdImporter
 import com.reliquary.app.integrations.SimklImporter
+import com.reliquary.app.integrations.SteamImporter
 import com.reliquary.app.metadata.ApiKeyStore
 import com.reliquary.app.metadata.DiscoverService
 import com.reliquary.app.metadata.MetadataService
@@ -45,6 +47,8 @@ class AppContainer(driver: SqlDriver) {
     val csvService = CsvService(repository)
     val letterboxdImporter = LetterboxdImporter(httpClient, repository)
     val simklImporter = SimklImporter(httpClient, apiKeyStore, repository)
+    val steamImporter = SteamImporter(httpClient, apiKeyStore, repository)
+    val discogsImporter = DiscogsImporter(httpClient, apiKeyStore, repository)
 
     val metadataService: MetadataService = MetadataService(
         listOf(

@@ -417,9 +417,26 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
 
         KeySection(
             title = "Discogs — Music (optional)",
-            help = "Generate a personal access token at discogs.com → Settings → Developers.",
-            fields = listOf(KeyField("Personal Token", ApiKeys.DISCOGS, secret = true)),
+            help = "Generate a personal access token at discogs.com → Settings → Developers. " +
+                "Add your username too if you want to import your whole collection (Tools → Import / export CSV).",
+            fields = listOf(
+                KeyField("Personal Token", ApiKeys.DISCOGS, secret = true),
+                KeyField("Username", ApiKeys.DISCOGS_USER),
+            ),
             keysActive = keys.has(ApiKeys.DISCOGS),
+            onSave = { values -> values.forEach { (k, v) -> keys.set(k, v) } },
+            initialValue = { keys.get(it) },
+        )
+
+        KeySection(
+            title = "Steam — Games (optional)",
+            help = "Get a free Web API key at steamcommunity.com/dev/apikey, then add your " +
+                "64-bit SteamID or profile name. Import your owned games from Tools → Import / export CSV.",
+            fields = listOf(
+                KeyField("Web API Key", ApiKeys.STEAM, secret = true),
+                KeyField("SteamID or profile name", ApiKeys.STEAM_ID),
+            ),
+            keysActive = keys.has(ApiKeys.STEAM) && keys.has(ApiKeys.STEAM_ID),
             onSave = { values -> values.forEach { (k, v) -> keys.set(k, v) } },
             initialValue = { keys.get(it) },
         )

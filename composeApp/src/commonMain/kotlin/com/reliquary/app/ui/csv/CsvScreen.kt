@@ -173,6 +173,93 @@ fun CsvScreen(container: AppContainer, navigator: Navigator) {
         LetterboxdSection(container)
         Spacer(Modifier.height(8.dp))
         SimklSection(container)
+        Spacer(Modifier.height(8.dp))
+        SteamSection(container)
+        Spacer(Modifier.height(8.dp))
+        DiscogsSection(container)
+    }
+}
+
+@Composable
+private fun SteamSection(container: AppContainer) {
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val hasKey = container.apiKeyStore.has(com.reliquary.app.metadata.ApiKeys.STEAM) &&
+        container.apiKeyStore.has(com.reliquary.app.metadata.ApiKeys.STEAM_ID)
+
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Import from Steam", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(
+                "Pulls every game you own on Steam into the Games tab, with cover art and " +
+                    "playtime. Add your Steam Web API key and SteamID (or profile name) in " +
+                    "Settings first. Your Steam profile's game details must be public.",
+                color = ReliquaryMuted,
+                fontSize = 12.sp,
+            )
+            if (!hasKey) {
+                Text("Set your Steam API key and SteamID in Settings first.", color = ReliquaryMuted, fontSize = 13.sp)
+            } else {
+                PillButton(label = "Import Steam library", icon = null, background = MaterialTheme.colorScheme.primary, foreground = Color.Black) {
+                    if (busy) return@PillButton
+                    busy = true; status = "Importing your Steam games…"
+                    scope.launch {
+                        status = runCatching {
+                            val count = withContext(Dispatchers.Default) { container.steamImporter.importOwnedGames() }
+                            when {
+                                count < 0 -> "Import failed — check your API key and SteamID."
+                                count == 0 -> "No games found (is your profile's game details set to public?)."
+                                else -> "Imported/updated $count games from Steam."
+                            }
+                        }.getOrElse { "Import failed: ${it.message}" }
+                        busy = false
+                    }
+                }
+            }
+            status?.let { Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp) }
+        }
+    }
+}
+
+@Composable
+private fun DiscogsSection(container: AppContainer) {
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val hasKey = container.apiKeyStore.has(com.reliquary.app.metadata.ApiKeys.DISCOGS) &&
+        container.apiKeyStore.has(com.reliquary.app.metadata.ApiKeys.DISCOGS_USER)
+
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Import from Discogs", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(
+                "Pulls your Discogs collection into the Music tab, with cover art, artist, " +
+                    "year, format and genres. Add your Discogs token and username in Settings first.",
+                color = ReliquaryMuted,
+                fontSize = 12.sp,
+            )
+            if (!hasKey) {
+                Text("Set your Discogs token and username in Settings first.", color = ReliquaryMuted, fontSize = 13.sp)
+            } else {
+                PillButton(label = "Import Discogs collection", icon = null, background = MaterialTheme.colorScheme.primary, foreground = Color.Black) {
+                    if (busy) return@PillButton
+                    busy = true; status = "Importing your Discogs collection…"
+                    scope.launch {
+                        status = runCatching {
+                            val count = withContext(Dispatchers.Default) { container.discogsImporter.importCollection() }
+                            when {
+                                count < 0 -> "Import failed — check your token and username."
+                                count == 0 -> "No releases found in that collection."
+                                else -> "Imported/updated $count releases from Discogs."
+                            }
+                        }.getOrElse { "Import failed: ${it.message}" }
+                        busy = false
+                    }
+                }
+            }
+            status?.let { Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp) }
+        }
     }
 }
 
