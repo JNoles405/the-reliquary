@@ -110,6 +110,9 @@ INSERT OR REPLACE INTO item(
 softDeleteItem:
 UPDATE item SET deleted = 1, updated_at = :updatedAt WHERE id = :id;
 
+hardDeleteItem:
+DELETE FROM item WHERE id = :id;
+
 -- ===========================================================================
 -- People (whom you lend to)
 -- ===========================================================================

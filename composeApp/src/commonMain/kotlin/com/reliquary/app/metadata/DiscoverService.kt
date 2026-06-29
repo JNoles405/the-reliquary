@@ -18,6 +18,46 @@ class DiscoverService(private val client: HttpClient, private val keys: ApiKeySt
     val hasTmdb: Boolean get() = keys.has(ApiKeys.TMDB)
     val hasSimkl: Boolean get() = keys.has(ApiKeys.SIMKL)
 
+    /** Streaming providers (flatrate) for a TMDB title in [region], via TMDB's JustWatch data. */
+    suspend fun watchProviders(mediaType: MediaType, tmdbId: String, region: String = "US"): List<String> {
+        val key = keys.get(ApiKeys.TMDB) ?: return emptyList()
+        val path = if (mediaType == MediaType.TV || mediaType == MediaType.ANIME) "tv" else "movie"
+        val url = "https://api.themoviedb.org/3/$path/$tmdbId/watch/providers?api_key=$key"
+        val root = runCatching { ReliquaryJson.parseToJsonElement(client.get(url).bodyAsText()).obj() }.getOrNull()
+            ?: return emptyList()
+        val country = root["results"].obj()?.get(region).obj() ?: return emptyList()
+        return country.array("flatrate")?.mapNotNull { it.obj()?.string("provider_name") }?.distinct().orEmpty()
+    }
+
+    /** TMDB recommendations for a title the user owns. */
+    suspend fun recommendations(mediaType: MediaType, tmdbId: String): List<MetadataResult> {
+        val key = keys.get(ApiKeys.TMDB) ?: return emptyList()
+        val type = if (mediaType == MediaType.TV || mediaType == MediaType.ANIME) MediaType.TV else MediaType.MOVIES
+        val path = if (type == MediaType.TV) "tv" else "movie"
+        val titleKey = if (type == MediaType.TV) "name" else "title"
+        val dateKey = if (type == MediaType.TV) "first_air_date" else "release_date"
+        val url = "https://api.themoviedb.org/3/$path/$tmdbId/recommendations?api_key=$key"
+        val results = runCatching {
+            ReliquaryJson.parseToJsonElement(client.get(url).bodyAsText()).obj()?.array("results")
+        }.getOrNull() ?: return emptyList()
+        return results.mapNotNull { el ->
+            val o = el.obj() ?: return@mapNotNull null
+            val title = o.string(titleKey) ?: return@mapNotNull null
+            MetadataResult(
+                providerId = "tmdb",
+                providerName = "TMDB",
+                mediaType = type,
+                title = title,
+                releaseYear = yearFrom(o.string(dateKey)),
+                description = o.string("overview"),
+                coverUrl = o.string("poster_path")?.let { "https://image.tmdb.org/t/p/w780$it" },
+                identifierType = "TMDB",
+                identifier = o.string("id"),
+                extra = o.string("backdrop_path")?.let { mapOf("_backdrop" to "https://image.tmdb.org/t/p/w1280$it") } ?: emptyMap(),
+            )
+        }
+    }
+
     suspend fun trendingMovies(): List<MetadataResult> = tmdbTrending("movie", MediaType.MOVIES, "title", "release_date")
     suspend fun trendingTv(): List<MetadataResult> = tmdbTrending("tv", MediaType.TV, "name", "first_air_date")
 

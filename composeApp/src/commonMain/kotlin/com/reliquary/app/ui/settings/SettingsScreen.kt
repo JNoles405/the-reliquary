@@ -44,6 +44,8 @@ import androidx.compose.material.icons.filled.SyncAlt
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.metadata.ApiKeys
+import com.reliquary.app.ui.home.HOME_HIDDEN_RAILS_SETTING
+import com.reliquary.app.ui.home.HOME_RAILS
 import com.reliquary.app.ui.Navigator
 import com.reliquary.app.ui.Screen
 import com.reliquary.app.ui.components.PillButton
@@ -138,6 +140,32 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
 
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
             Column {
+                Text("Home rails", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Spacer(Modifier.height(4.dp))
+                Text("Choose which rows show on the Home dashboard.", color = ReliquaryMuted, fontSize = 12.sp)
+                Spacer(Modifier.height(6.dp))
+                var hidden by remember {
+                    mutableStateOf(
+                        container.repository.getSetting(HOME_HIDDEN_RAILS_SETTING)?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet() ?: emptySet(),
+                    )
+                }
+                HOME_RAILS.forEach { rail ->
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Switch(
+                            checked = rail !in hidden,
+                            onCheckedChange = { on ->
+                                hidden = if (on) hidden - rail else hidden + rail
+                                container.repository.setSetting(HOME_HIDDEN_RAILS_SETTING, hidden.joinToString(",").ifBlank { null })
+                            },
+                        )
+                        Text("  $rail", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                    }
+                }
+            }
+        }
+
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface).padding(16.dp)) {
+            Column {
                 Text("Accent color", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Spacer(Modifier.height(10.dp))
                 Row(
@@ -201,6 +229,8 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
             ToolButton("Import / export CSV") { navigator.push(Screen.Csv) }
             ToolButton("Media servers") { navigator.push(Screen.Servers) }
             ToolButton("Backups") { navigator.push(Screen.Backups) }
+            ToolButton("Trash") { navigator.push(Screen.Trash) }
+            ToolButton("Year in Review") { navigator.push(Screen.YearInReview) }
             ToolButton("Find duplicates") { navigator.push(Screen.Duplicates) }
             ToolButton("Export HTML catalog") {
                 scope.launch {

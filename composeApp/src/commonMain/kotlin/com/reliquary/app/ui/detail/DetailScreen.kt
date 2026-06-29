@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,6 +66,7 @@ import com.reliquary.app.domain.WISH_PRIORITIES
 import com.reliquary.app.domain.WISH_PRIORITY_KEY
 import com.reliquary.app.domain.parseTags
 import com.reliquary.app.domain.progressUnit
+import com.reliquary.app.metadata.MetadataResult
 import com.reliquary.app.metadata.ReliquaryJson
 import kotlinx.serialization.encodeToString
 import com.reliquary.app.ui.Navigator
@@ -134,6 +136,21 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
         mutate(map)
         val json = if (map.isEmpty()) null else ReliquaryJson.encodeToString(map)
         container.repository.upsertItem(current.copy(extraJson = json, updatedAt = nowMillis()))
+    }
+
+    // Streaming availability + recommendations (TMDB titles only).
+    val tmdbId = current.identifier?.takeIf { current.identifierType == "TMDB" }
+    val tmdbMediaType = runCatching { MediaType.valueOf(current.mediaType) }.getOrNull()
+    var streaming by remember(current.id) { mutableStateOf<List<String>>(emptyList()) }
+    val recommendations = remember(current.id) { mutableStateListOf<MetadataResult>() }
+    LaunchedEffect(current.id) {
+        if (tmdbId != null && tmdbMediaType != null) {
+            streaming = runCatching { container.discoverService.watchProviders(tmdbMediaType, tmdbId) }.getOrDefault(emptyList())
+            recommendations.clear()
+            recommendations.addAll(
+                runCatching { container.discoverService.recommendations(tmdbMediaType, tmdbId) }.getOrDefault(emptyList()).take(16),
+            )
+        }
     }
 
     VScrollColumn {
@@ -470,6 +487,32 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
             current.description?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(20.dp))
                 Text(it, color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, lineHeight = 22.sp)
+            }
+
+            if (streaming.isNotEmpty()) {
+                Spacer(Modifier.height(18.dp))
+                Text("Streaming on", color = ReliquaryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(4.dp))
+                Text(streaming.joinToString(" · "), color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+            }
+
+            if (recommendations.isNotEmpty()) {
+                Spacer(Modifier.height(20.dp))
+                Text("Because you own this", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    recommendations.forEach { rec ->
+                        Column(Modifier.width(110.dp).clickable {
+                            val now = nowMillis()
+                            container.repository.importOrUpdate(rec.toCollectionItem().copy(wanted = true, addedAt = now, updatedAt = now))
+                        }) {
+                            CoverImage(rec.coverUrl, rec.title, Modifier.width(110.dp).height(165.dp).clip(RoundedCornerShape(8.dp)))
+                            Spacer(Modifier.height(4.dp))
+                            Text(rec.title, color = MaterialTheme.colorScheme.onBackground, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+                Text("Tap a title to add it to your wishlist.", color = ReliquaryMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
             }
 
             Spacer(Modifier.height(20.dp))

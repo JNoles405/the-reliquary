@@ -73,6 +73,8 @@ fun CommandPaletteOverlay(
             add(Command("Settings", "Screen") { navigator.push(Screen.Settings) })
             add(Command("Quick add", "Tool") { navigator.push(Screen.QuickAdd) })
             add(Command("Backups", "Tool") { navigator.push(Screen.Backups) })
+            add(Command("Trash", "Tool") { navigator.push(Screen.Trash) })
+            add(Command("Year in Review", "Tool") { navigator.push(Screen.YearInReview) })
             add(Command("Find duplicates", "Tool") { navigator.push(Screen.Duplicates) })
             add(Command("Media servers", "Tool") { navigator.push(Screen.Servers) })
             add(Command("Sync library", "Tool") { navigator.push(Screen.Sync) })

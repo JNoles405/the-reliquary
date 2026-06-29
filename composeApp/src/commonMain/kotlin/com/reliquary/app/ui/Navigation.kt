@@ -33,6 +33,8 @@ sealed interface Screen {
     data object Backups : Screen
     data object QuickAdd : Screen
     data object Home : Screen
+    data object Trash : Screen
+    data object YearInReview : Screen
 }
 
 class Navigator(initial: Screen) {

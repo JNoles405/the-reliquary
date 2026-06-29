@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import com.reliquary.app.sync.defaultSyncFilePath
+import com.reliquary.app.sync.writeTextFile
+import com.reliquary.app.util.isDesktopPlatform
+import com.reliquary.app.util.openUrl
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +53,7 @@ import com.reliquary.app.util.formatDate
 fun LoansScreen(container: AppContainer, navigator: Navigator) {
     val loans by remember { container.repository.activeLoans() }.collectAsState(emptyList())
     val now = nowMillis()
+    val scope = rememberCoroutineScope()
     val sorted = remember(loans) { loans.sortedWith(compareBy(nullsLast()) { it.dueAt }) }
     val overdue = sorted.count { dayDelta(it, now) < 0 }
     val soon = sorted.count { val d = dayDelta(it, now); d in 0..3 }
@@ -51,6 +61,17 @@ fun LoansScreen(container: AppContainer, navigator: Navigator) {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("On Loan", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 24.sp, modifier = Modifier.weight(1f))
+            if (sorted.any { it.dueAt != null }) {
+                PillButton("Export .ics", null, MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onBackground) {
+                    scope.launch {
+                        val ics = withContext(Dispatchers.Default) { buildLoansIcs(container, sorted) }
+                        val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-loans.ics")
+                        withContext(Dispatchers.Default) { writeTextFile(path, ics) }
+                        if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
+                    }
+                }
+                Spacer(Modifier.width(10.dp))
+            }
             PillButton("People", null, MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onBackground) { navigator.push(Screen.People) }
         }
         if (sorted.isEmpty()) {
@@ -123,6 +144,30 @@ private fun LoanRow(container: AppContainer, loan: Loan, now: Long, navigator: N
         ) { container.repository.markLoanReturned(loan.id) }
     }
 }
+
+/** A .ics calendar (all-day VEVENTs) of loan due dates for subscribing in a calendar app. */
+private fun buildLoansIcs(container: AppContainer, loans: List<Loan>): String {
+    val sb = StringBuilder()
+    sb.append("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//The Reliquary//EN\r\nCALSCALE:GREGORIAN\r\n")
+    val stamp = formatDate(nowMillis()).replace("-", "") + "T000000Z"
+    loans.filter { it.dueAt != null }.forEach { loan ->
+        val item = container.repository.getItem(loan.itemId)
+        val person = container.repository.getPerson(loan.personId)
+        val due = formatDate(loan.dueAt!!).replace("-", "")
+        val summary = icsEscape((item?.title ?: "Item") + " due back" + (person?.name?.let { " from $it" } ?: ""))
+        sb.append("BEGIN:VEVENT\r\n")
+        sb.append("UID:loan-${loan.id}@reliquary\r\n")
+        sb.append("DTSTAMP:$stamp\r\n")
+        sb.append("DTSTART;VALUE=DATE:$due\r\n")
+        sb.append("SUMMARY:$summary\r\n")
+        sb.append("END:VEVENT\r\n")
+    }
+    sb.append("END:VCALENDAR\r\n")
+    return sb.toString()
+}
+
+private fun icsEscape(s: String): String =
+    s.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\n", " ")
 
 /** Whole-day difference between the due date and now (negative = overdue). */
 private fun dayDelta(loan: Loan, now: Long): Int {

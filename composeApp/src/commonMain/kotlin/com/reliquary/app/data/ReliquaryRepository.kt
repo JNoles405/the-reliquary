@@ -91,6 +91,17 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
 
     fun deleteItem(id: String) = q.softDeleteItem(updatedAt = nowMillis(), id = id)
 
+    /** Soft-deleted items, newest first (the recycle bin). */
+    fun deletedItems(): List<CollectionItem> =
+        allItems().filter { it.deleted }.sortedByDescending { it.updatedAt }
+
+    fun restoreItem(id: String) {
+        getItem(id)?.let { upsertItem(it.copy(deleted = false, updatedAt = nowMillis())) }
+    }
+
+    /** Permanently remove an item from the database. */
+    fun purgeItem(id: String) = q.hardDeleteItem(id)
+
     /** Set or clear an item's status. */
     fun updateStatus(itemId: String, status: String?) {
         val item = getItem(itemId) ?: return

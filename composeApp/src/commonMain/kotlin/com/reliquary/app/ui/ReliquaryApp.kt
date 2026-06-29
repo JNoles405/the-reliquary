@@ -130,6 +130,8 @@ fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {})
                 Screen.Backups -> com.reliquary.app.ui.tools.BackupScreen(container, navigator)
                 Screen.QuickAdd -> com.reliquary.app.ui.tools.QuickAddScreen(container, navigator)
                 Screen.Home -> com.reliquary.app.ui.home.HomeScreen(container, navigator)
+                Screen.Trash -> com.reliquary.app.ui.tools.TrashScreen(container, navigator)
+                Screen.YearInReview -> com.reliquary.app.ui.tools.YearInReviewScreen(container, navigator)
             }
         }
     }

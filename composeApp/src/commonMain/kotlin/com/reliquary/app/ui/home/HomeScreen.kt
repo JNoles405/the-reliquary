@@ -35,6 +35,14 @@ import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.ui.theme.ReliquaryMuted
 
+/** All Home rails, in display order. Settings lets the user hide any of them. */
+val HOME_RAILS = listOf(
+    "Continue", "Recently finished", "Due back", "Recently viewed",
+    "Recently added", "Favorites", "Top of your wishlist", "Rediscover",
+)
+
+const val HOME_HIDDEN_RAILS_SETTING = "home.hiddenRails"
+
 private fun priorityOf(item: CollectionItem): String? =
     item.extraJson?.let { Regex("\"_wishPriority\"\\s*:\\s*\"([^\"]+)\"").find(it)?.groupValues?.get(1) }
 
@@ -57,6 +65,9 @@ fun HomeScreen(container: AppContainer, navigator: Navigator) {
     val favorites = items.filter { it.favorite }
     val wishlist = items.filter { it.wanted }.sortedBy { wishPriorityRank(priorityOf(it)) }
     val rediscover = remember(items) { owned.shuffled().take(16) }
+    val hidden = remember {
+        container.repository.getSetting(HOME_HIDDEN_RAILS_SETTING)?.split(",")?.map { it.trim() }?.toSet() ?: emptySet()
+    }
 
     VScrollColumn(contentPadding = PaddingValues(top = 8.dp, bottom = 28.dp)) {
         Text(
@@ -67,14 +78,14 @@ fun HomeScreen(container: AppContainer, navigator: Navigator) {
             modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 4.dp),
         )
 
-        Rail("Continue", continueItems, navigator)
-        Rail("Recently finished", recentlyFinished, navigator)
-        Rail("Due back", dueBack, navigator)
-        Rail("Recently viewed", recentlyViewed, navigator)
-        Rail("Recently added", recentlyAdded, navigator)
-        Rail("Favorites", favorites, navigator)
-        Rail("Top of your wishlist", wishlist, navigator)
-        Rail("Rediscover", rediscover, navigator)
+        Rail("Continue", continueItems, navigator, hidden)
+        Rail("Recently finished", recentlyFinished, navigator, hidden)
+        Rail("Due back", dueBack, navigator, hidden)
+        Rail("Recently viewed", recentlyViewed, navigator, hidden)
+        Rail("Recently added", recentlyAdded, navigator, hidden)
+        Rail("Favorites", favorites, navigator, hidden)
+        Rail("Top of your wishlist", wishlist, navigator, hidden)
+        Rail("Rediscover", rediscover, navigator, hidden)
 
         if (items.isEmpty()) {
             Text(
@@ -88,8 +99,8 @@ fun HomeScreen(container: AppContainer, navigator: Navigator) {
 }
 
 @Composable
-private fun Rail(title: String, items: List<CollectionItem>, navigator: Navigator) {
-    if (items.isEmpty()) return
+private fun Rail(title: String, items: List<CollectionItem>, navigator: Navigator, hidden: Set<String> = emptySet()) {
+    if (items.isEmpty() || title in hidden) return
     Column(Modifier.fillMaxWidth()) {
         Text(
             title,
