@@ -174,6 +174,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     var selectionMode by remember(active) { mutableStateOf(false) }
     val selected = remember(active) { mutableStateListOf<String>() }
     fun exitSelection() { selectionMode = false; selected.clear() }
+    fun toggleSelect(id: String) { if (id in selected) selected.remove(id) else selected.add(id) }
 
     var bulkDialog by remember(active) { mutableStateOf<String?>(null) } // "tag" | "series" | "location"
     var bulkText by remember(active) { mutableStateOf("") }
@@ -267,6 +268,18 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     }
     // Pin the bar once the user scrolls past the hero + inline controls (items 0 & 1).
     val showPinnedControls by remember { derivedStateOf { items.isNotEmpty() && gridState.firstVisibleItemIndex >= 2 } }
+
+    // A shelf rail that participates in selection mode just like the main grid.
+    val shelf: @Composable (String, List<CollectionItem>) -> Unit = { title, list ->
+        Shelf(
+            title = title,
+            items = list,
+            selectionMode = selectionMode,
+            isSelected = { it in selected },
+            onToggle = { toggleSelect(it) },
+            onOpen = { navigator.push(Screen.Detail(it)) },
+        )
+    }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
     // Columns produced by GridCells.Adaptive: floor((avail + spacing) / (minSize + spacing)).
@@ -386,29 +399,19 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
             }
             if (showShelves) {
                 if (continueItems.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Shelf("Continue", continueItems) { navigator.push(Screen.Detail(it)) }
-                    }
+                    item(span = { GridItemSpan(maxLineSpan) }) { shelf("Continue", continueItems) }
                 }
                 if (recent.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Shelf("Recently Added", recent) { navigator.push(Screen.Detail(it)) }
-                    }
+                    item(span = { GridItemSpan(maxLineSpan) }) { shelf("Recently Added", recent) }
                 }
                 if (rediscover.size >= 4) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Shelf("Rediscover", rediscover) { navigator.push(Screen.Detail(it)) }
-                    }
+                    item(span = { GridItemSpan(maxLineSpan) }) { shelf("Rediscover", rediscover) }
                 }
                 if (favorites.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Shelf("Favorites", favorites) { navigator.push(Screen.Detail(it)) }
-                    }
+                    item(span = { GridItemSpan(maxLineSpan) }) { shelf("Favorites", favorites) }
                 }
                 if (loaned.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Shelf("On Loan", loaned) { navigator.push(Screen.Detail(it)) }
-                    }
+                    item(span = { GridItemSpan(maxLineSpan) }) { shelf("On Loan", loaned) }
                 }
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
@@ -779,7 +782,14 @@ private fun Hero(
 }
 
 @Composable
-private fun Shelf(title: String, items: List<CollectionItem>, onItemClick: (String) -> Unit) {
+private fun Shelf(
+    title: String,
+    items: List<CollectionItem>,
+    selectionMode: Boolean,
+    isSelected: (String) -> Boolean,
+    onToggle: (String) -> Unit,
+    onOpen: (String) -> Unit,
+) {
     Column(Modifier.fillMaxWidth()) {
         Text(
             text = title,
@@ -792,19 +802,58 @@ private fun Shelf(title: String, items: List<CollectionItem>, onItemClick: (Stri
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items.forEach { item -> ShelfCard(item) { onItemClick(item.id) } }
+            items.forEach { item ->
+                val sel = isSelected(item.id)
+                ShelfCard(
+                    item = item,
+                    selectionMode = selectionMode,
+                    selected = sel,
+                    onToggleSelect = { onToggle(item.id) },
+                    onClick = { if (selectionMode) onToggle(item.id) else onOpen(item.id) },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ShelfCard(item: CollectionItem, onClick: () -> Unit) {
+private fun ShelfCard(
+    item: CollectionItem,
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onToggleSelect: () -> Unit = {},
+    onClick: () -> Unit,
+) {
     Column(Modifier.width(132.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(6.dp)) {
-        CoverImage(
-            url = item.thumbImage,
-            contentDescription = item.title,
-            modifier = Modifier.width(120.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)),
-        )
+        Box {
+            CoverImage(
+                url = item.thumbImage,
+                contentDescription = item.title,
+                modifier = Modifier.width(120.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)),
+            )
+            if (selected) {
+                Box(
+                    Modifier.width(120.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                        .clickable(onClick = onToggleSelect),
+                )
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = Color.White,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp)
+                        .clickable(onClick = onToggleSelect),
+                )
+            } else if (selectionMode) {
+                Icon(
+                    Icons.Filled.RadioButtonUnchecked,
+                    contentDescription = "Not selected",
+                    tint = Color.White,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp)
+                        .clickable(onClick = onToggleSelect),
+                )
+            }
+        }
         Spacer(Modifier.height(6.dp))
         Text(
             text = item.title,
