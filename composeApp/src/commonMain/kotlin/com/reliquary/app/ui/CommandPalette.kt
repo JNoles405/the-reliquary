@@ -62,6 +62,7 @@ fun CommandPaletteOverlay(
 
     val destinations = remember {
         buildList {
+            add(Command("Home", "Screen") { navigator.resetTo(Screen.Home) })
             MediaType.entries.forEach { t -> add(Command(t.displayName, "Tab") { onSelectBuiltin(t) }) }
             add(Command("Discover", "Screen") { navigator.resetTo(Screen.Discover) })
             add(Command("Tags", "Screen") { navigator.resetTo(Screen.Tags) })

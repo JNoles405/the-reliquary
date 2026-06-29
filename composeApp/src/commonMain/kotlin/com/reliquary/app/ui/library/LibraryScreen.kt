@@ -541,15 +541,18 @@ private fun Hero(
     onImport: () -> Unit,
 ) {
     Box(
+        // The Box stays within the grid's 20.dp inset; only the image/gradient
+        // layers bleed to the screen edges, so the title/buttons (at the Box's
+        // left edge) line up with the thumbnail rows below.
         Modifier
-            .edgeToEdgeHorizontal(20.dp)
+            .fillMaxWidth()
             .height(360.dp),
     ) {
         if (featured?.coverImage != null) {
-            CoverImage(featured.coverImage, featured.title, Modifier.fillMaxSize())
+            CoverImage(featured.coverImage, featured.title, Modifier.edgeToEdgeHorizontal(20.dp).fillMaxSize())
         } else {
             Box(
-                Modifier.fillMaxSize().background(
+                Modifier.edgeToEdgeHorizontal(20.dp).fillMaxSize().background(
                     Brush.linearGradient(
                         listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.background),
                     ),
@@ -557,14 +560,14 @@ private fun Hero(
             )
         }
         Box(
-            Modifier.fillMaxSize().background(
+            Modifier.edgeToEdgeHorizontal(20.dp).fillMaxSize().background(
                 Brush.verticalGradient(
                     0.35f to Color.Transparent,
                     1f to MaterialTheme.colorScheme.background,
                 ),
             ),
         )
-        Column(Modifier.align(Alignment.BottomStart).padding(24.dp)) {
+        Column(Modifier.align(Alignment.BottomStart).padding(end = 24.dp, top = 24.dp, bottom = 24.dp)) {
             Text(
                 text = featured?.title ?: title,
                 color = MaterialTheme.colorScheme.onBackground,

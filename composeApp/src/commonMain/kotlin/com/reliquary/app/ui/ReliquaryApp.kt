@@ -127,6 +127,7 @@ fun ReliquaryApp(container: AppContainer, onAccentChange: (String) -> Unit = {})
                 Screen.Duplicates -> com.reliquary.app.ui.tools.DuplicatesScreen(container, navigator)
                 Screen.Backups -> com.reliquary.app.ui.tools.BackupScreen(container, navigator)
                 Screen.QuickAdd -> com.reliquary.app.ui.tools.QuickAddScreen(container, navigator)
+                Screen.Home -> com.reliquary.app.ui.home.HomeScreen(container, navigator)
             }
         }
     }
@@ -176,7 +177,7 @@ private fun TopNav(
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 19.sp,
-            modifier = Modifier.clickable { navigator.resetTo(Screen.Library) },
+            modifier = Modifier.clickable { navigator.resetTo(Screen.Home) },
         )
         Spacer(Modifier.width(20.dp))
         // Library categories (built-in media types + custom tabs) scroll here.
@@ -213,6 +214,7 @@ private fun TopNav(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            TabLabel("Home", navigator.current == Screen.Home) { navigator.resetTo(Screen.Home) }
             TabLabel("Discover", navigator.current == Screen.Discover) { navigator.resetTo(Screen.Discover) }
             TabLabel("Tags", navigator.current == Screen.Tags) { navigator.resetTo(Screen.Tags) }
             TabLabel("Series", navigator.current == Screen.Series) { navigator.resetTo(Screen.Series) }

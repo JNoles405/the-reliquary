@@ -25,6 +25,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Star
@@ -94,6 +96,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
     // Cache the remote cover to local storage the first time this item is viewed.
     LaunchedEffect(current.id) {
         container.coverCache.ensureCached(current, container.repository)
+        com.reliquary.app.tools.RecentlyViewed.record(container.repository, current.id)
     }
 
     // Extras split into provider info (cast, crew, runtime, …) and editable edition details.
@@ -151,6 +154,14 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                         1f to MaterialTheme.colorScheme.background,
                     ),
                 ),
+            )
+            // Quick favorite toggle (top-right of the hero).
+            Icon(
+                imageVector = if (current.favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                contentDescription = if (current.favorite) "Unfavorite" else "Favorite",
+                tint = if (current.favorite) MaterialTheme.colorScheme.primary else Color.White,
+                modifier = Modifier.align(Alignment.TopEnd).padding(20.dp).size(30.dp)
+                    .clickable { container.repository.upsertItem(current.copy(favorite = !current.favorite, updatedAt = nowMillis())) },
             )
             Column(Modifier.align(Alignment.BottomStart).padding(24.dp)) {
                 val badge = when {
