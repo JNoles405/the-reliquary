@@ -1,10 +1,14 @@
 package com.reliquary.app.ui.library
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,7 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +41,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -46,8 +51,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -147,6 +160,14 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     // A stable random sample to resurface older items; reshuffles only when the library changes.
     val rediscover = remember(items) { items.filter { !it.wanted }.shuffled().take(12) }
 
+    // Shelves (lifted out of the grid so keyboard nav can count the rows above the cards).
+    val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && !wishlistOnly && genre == null && statusFilter == null
+    val owned = remember(items) { items.filter { !it.wanted } }
+    val continueItems = if (showShelves) owned.filter { it.status in Status.IN_PROGRESS } else emptyList()
+    val recent = if (showShelves) owned.sortedByDescending { it.addedAt }.take(12) else emptyList()
+    val favorites = if (showShelves) owned.filter { it.favorite } else emptyList()
+    val loaned = if (showShelves) owned.filter { it.id in onLoanIds } else emptyList()
+
     var selectionMode by remember(active) { mutableStateOf(false) }
     val selected = remember(active) { mutableStateListOf<String>() }
     fun exitSelection() { selectionMode = false; selected.clear() }
@@ -176,11 +197,82 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     }
     val gridState = rememberLazyGridState()
 
-    Box(Modifier.fillMaxSize()) {
+    // ---- Keyboard grid navigation (desktop) --------------------------------
+    val navEnabled = remember { isDesktopPlatform() && container.repository.getSetting("ui.keyboardNav") != "off" }
+    val focusRequester = remember { FocusRequester() }
+    // Selected card index into `displayed`; -1 means nothing highlighted yet.
+    var selectedIndex by remember(active) { mutableStateOf(-1) }
+    // Number of full-span header rows above the card grid — must mirror the items below.
+    val headerCount = run {
+        var c = 1 // hero
+        if (items.isNotEmpty()) {
+            c += 1 // controls
+            if (selectionMode) c += 1
+            if (showShelves) {
+                if (continueItems.isNotEmpty()) c++
+                if (recent.isNotEmpty()) c++
+                if (rediscover.size >= 4) c++
+                if (favorites.isNotEmpty()) c++
+                if (loaned.isNotEmpty()) c++
+            }
+            c += 1 // "All <title>" header
+        }
+        c
+    }
+    if (navEnabled) {
+        LaunchedEffect(active) { runCatching { focusRequester.requestFocus() } }
+        // Gently scroll the selected card into view (top or bottom edge) without snapping.
+        LaunchedEffect(selectedIndex) {
+            if (selectedIndex < 0) return@LaunchedEffect
+            val lazyIndex = headerCount + selectedIndex
+            val info = gridState.layoutInfo
+            val target = info.visibleItemsInfo.firstOrNull { it.index == lazyIndex }
+            if (target == null) {
+                gridState.animateScrollToItem(lazyIndex.coerceAtLeast(0))
+            } else {
+                val top = target.offset.y
+                val bottom = top + target.size.height
+                when {
+                    bottom > info.viewportEndOffset -> gridState.animateScrollBy((bottom - info.viewportEndOffset).toFloat() + 14f)
+                    top < info.viewportStartOffset -> gridState.animateScrollBy((top - info.viewportStartOffset).toFloat() - 14f)
+                }
+            }
+        }
+    }
+
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    // Columns produced by GridCells.Adaptive: floor((avail + spacing) / (minSize + spacing)).
+    val columns = remember(maxWidth, coverDp) {
+        val avail = maxWidth.value - 40f // 20.dp content padding on each side
+        maxOf(1, ((avail + 14f) / (coverDp + 14f)).toInt())
+    }
+    fun handleKey(e: KeyEvent): Boolean {
+        if (e.type != KeyEventType.KeyDown) return false
+        val n = displayed.size
+        if (n == 0) return false
+        fun moveTo(i: Int) { selectedIndex = i.coerceIn(0, n - 1) }
+        when (e.key) {
+            Key.DirectionRight -> if (selectedIndex < 0) moveTo(0) else moveTo(selectedIndex + 1)
+            Key.DirectionLeft -> if (selectedIndex < 0) moveTo(0) else moveTo(selectedIndex - 1)
+            Key.DirectionDown -> if (selectedIndex < 0) moveTo(0) else moveTo(selectedIndex + columns)
+            Key.DirectionUp -> if (selectedIndex < 0) moveTo(0) else moveTo(selectedIndex - columns)
+            Key.MoveHome -> moveTo(0)
+            Key.MoveEnd -> moveTo(n - 1)
+            Key.PageDown -> moveTo(maxOf(selectedIndex, 0) + columns * 3)
+            Key.PageUp -> moveTo(maxOf(selectedIndex, 0) - columns * 3)
+            Key.Enter, Key.NumPadEnter ->
+                selectedIndex.takeIf { it in 0 until n }?.let { navigator.push(Screen.Detail(displayed[it].id)) } ?: return false
+            Key.Escape -> selectedIndex = -1
+            else -> return false
+        }
+        return true
+    }
+
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Adaptive(coverDp.dp),
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize()
+            .then(if (navEnabled) Modifier.focusRequester(focusRequester).focusable().onPreviewKeyEvent { handleKey(it) } else Modifier),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -278,13 +370,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     }
                 }
             }
-            val showShelves = !favoritesOnly && !onLoanOnly && !unfinishedOnly && !wishlistOnly && genre == null && statusFilter == null
             if (showShelves) {
-                val owned = items.filter { !it.wanted }
-                val continueItems = owned.filter { it.status in Status.IN_PROGRESS }
-                val recent = owned.sortedByDescending { it.addedAt }.take(12)
-                val favorites = owned.filter { it.favorite }
-                val loaned = owned.filter { it.id in onLoanIds }
                 if (continueItems.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Shelf("Continue", continueItems) { navigator.push(Screen.Detail(it)) }
@@ -329,8 +415,12 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                     )
                 }
             } else {
-                items(displayed, key = { it.id }) { item ->
-                    ItemCard(item, selected = selectionMode && item.id in selected) {
+                itemsIndexed(displayed, key = { _, it -> it.id }) { index, item ->
+                    ItemCard(
+                        item,
+                        selected = selectionMode && item.id in selected,
+                        focused = navEnabled && index == selectedIndex,
+                    ) {
                         if (selectionMode) {
                             if (item.id in selected) selected.remove(item.id) else selected.add(item.id)
                         } else {
@@ -701,13 +791,20 @@ private fun ShelfCard(item: CollectionItem, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ItemCard(item: CollectionItem, selected: Boolean = false, onClick: () -> Unit) {
+private fun ItemCard(item: CollectionItem, selected: Boolean = false, focused: Boolean = false, onClick: () -> Unit) {
     Column(Modifier.clickable(onClick = onClick)) {
         Box {
             CoverImage(
                 url = item.coverImage,
                 contentDescription = item.title,
-                modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)),
+                modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp))
+                    .then(
+                        if (focused) {
+                            Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
             if (selected) {
                 Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)))

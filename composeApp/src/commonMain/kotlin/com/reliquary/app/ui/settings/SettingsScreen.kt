@@ -203,6 +203,25 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                         }
                     }
                 }
+                if (isDesktopPlatform()) {
+                    Spacer(Modifier.height(12.dp))
+                    var keyNav by remember { mutableStateOf(container.repository.getSetting("ui.keyboardNav") != "off") }
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Switch(
+                            checked = keyNav,
+                            onCheckedChange = {
+                                keyNav = it
+                                container.repository.setSetting("ui.keyboardNav", if (it) "on" else "off")
+                            },
+                        )
+                        Text("  Keyboard navigation", color = MaterialTheme.colorScheme.onBackground)
+                    }
+                    Text(
+                        "Use arrow keys to move between covers in the library and Enter to open. Takes effect when you reopen a tab.",
+                        color = ReliquaryMuted,
+                        fontSize = 12.sp,
+                    )
+                }
             }
         }
 
