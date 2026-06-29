@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
+import com.reliquary.app.domain.COVER_LOCK_KEY
 import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.PROGRESS_KEY
 import com.reliquary.app.domain.PROGRESS_TOTAL_KEY
@@ -533,6 +534,8 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.clickable {
                                     container.repository.upsertItem(current.copy(coverUrl = path, coverPath = null, updatedAt = nowMillis()))
+                                    // Pin it so a later metadata refresh won't replace the chosen photo.
+                                    container.repository.setExtra(current.id, COVER_LOCK_KEY, "1")
                                 }.padding(top = 4.dp),
                             )
                         }

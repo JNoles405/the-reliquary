@@ -78,6 +78,7 @@ import kotlinx.coroutines.withContext
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.Status
+import com.reliquary.app.domain.thumbImage
 import com.reliquary.app.domain.wishPriorityRank
 import com.reliquary.app.ui.ActiveTab
 import com.reliquary.app.ui.Navigator
@@ -774,7 +775,7 @@ private fun Shelf(title: String, items: List<CollectionItem>, onItemClick: (Stri
 private fun ShelfCard(item: CollectionItem, onClick: () -> Unit) {
     Column(Modifier.width(120.dp).clickable(onClick = onClick)) {
         CoverImage(
-            url = item.coverImage,
+            url = item.thumbImage,
             contentDescription = item.title,
             modifier = Modifier.width(120.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)),
         )
@@ -795,7 +796,7 @@ private fun ItemCard(item: CollectionItem, selected: Boolean = false, focused: B
     Column(Modifier.clickable(onClick = onClick)) {
         Box {
             CoverImage(
-                url = item.coverImage,
+                url = item.thumbImage,
                 contentDescription = item.title,
                 modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp))
                     .then(

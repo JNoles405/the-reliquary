@@ -44,11 +44,13 @@ import androidx.compose.ui.unit.sp
 import com.reliquary.app.data.newId
 import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
+import com.reliquary.app.domain.COVER_LOCK_KEY
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.MediaType
 import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.SERIES_NUM_KEY
+import com.reliquary.app.domain.THUMB_KEY
 import com.reliquary.app.domain.VALUE_FIELDS
 import com.reliquary.app.domain.parseMoney
 import com.reliquary.app.domain.parseTags
@@ -61,6 +63,8 @@ import com.reliquary.app.ui.components.CoverImage
 import com.reliquary.app.ui.components.PillButton
 import com.reliquary.app.ui.components.VScrollColumn
 import com.reliquary.app.ui.theme.ReliquaryMuted
+import com.reliquary.app.util.isDesktopPlatform
+import com.reliquary.app.util.pickAndStoreImage
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -104,6 +108,11 @@ fun EditItemScreen(
     // Provider extras (cast/crew/backdrop), seeded from the item and replaced when
     // the user applies a metadata match; merged into the saved extras.
     var providerExtras by remember(itemId) { mutableStateOf(existingExtras) }
+
+    // Custom grid thumbnail (URL or uploaded path) and whether the cover is user-pinned
+    // (so a metadata refresh leaves it alone). Declared here so applyMatch can read them.
+    var thumbUrl by remember(itemId) { mutableStateOf(existingExtras[THUMB_KEY] ?: "") }
+    var coverCustom by remember(itemId) { mutableStateOf(existingExtras[COVER_LOCK_KEY] == "1") }
 
     // "Find metadata" search state.
     val scope = rememberCoroutineScope()
@@ -152,7 +161,8 @@ fun EditItemScreen(
             full.releaseYear?.let { year = it.toString() }
             full.genres?.let { genres = it }
             full.format?.let { format = it }
-            full.coverUrl?.let { coverUrl = it }
+            // Leave a user-pinned custom cover alone; only fill an empty cover.
+            full.coverUrl?.let { if (!coverCustom || coverUrl.isBlank()) coverUrl = it }
             full.description?.let { description = it }
             full.identifier?.let { identifier = it }
             full.rating?.let { rating = it }
@@ -192,6 +202,8 @@ fun EditItemScreen(
         if (series.isBlank()) extras.remove(SERIES_KEY) else extras[SERIES_KEY] = series.trim()
         if (seriesNum.isBlank()) extras.remove(SERIES_NUM_KEY) else extras[SERIES_NUM_KEY] = seriesNum.trim()
         if (editions.isBlank()) extras.remove("_editions") else extras["_editions"] = editions.trim()
+        if (thumbUrl.isBlank()) extras.remove(THUMB_KEY) else extras[THUMB_KEY] = thumbUrl.trim()
+        if (coverCustom && coverUrl.isNotBlank()) extras[COVER_LOCK_KEY] = "1" else extras.remove(COVER_LOCK_KEY)
         // Snapshot the current value over time (one point per day, last 30).
         parseMoney(valueStates["Current Value"]?.value)?.let { curVal ->
             val today = now / DAY_MILLIS
@@ -278,7 +290,18 @@ fun EditItemScreen(
         Field("Genres", genres) { genres = it }
         Field("Identifier (ISBN / UPC / catalog #)", identifier) { identifier = it }
         Field("Location (shelf / box)", location) { location = it }
-        Field("Cover image URL", coverUrl) { coverUrl = it }
+        ImagePickerField(
+            label = "Cover image",
+            value = coverUrl,
+            hint = "Big image on the detail page. A custom cover stays put through metadata updates.",
+            onChange = { coverUrl = it; coverCustom = it.isNotBlank() },
+        )
+        ImagePickerField(
+            label = "Thumbnail image",
+            value = thumbUrl,
+            hint = "Optional grid/shelf image. Leave blank to use the cover.",
+            onChange = { thumbUrl = it },
+        )
         Field("Description", description, singleLine = false) { description = it }
         Field("Notes", notes, singleLine = false) { notes = it }
         Field("Tags (comma-separated)", tags) { tags = it }
@@ -464,6 +487,40 @@ private fun Field(label: String, value: String, singleLine: Boolean = true, onVa
         label = { Text(label) },
         singleLine = singleLine,
     )
+}
+
+/**
+ * A URL text field plus (on desktop) an "Upload" button and a small live preview.
+ * The chosen value can be a remote URL or a local image path; both render.
+ */
+@Composable
+private fun ImagePickerField(label: String, value: String, hint: String, onChange: (String) -> Unit) {
+    Column {
+        Field("$label URL", value) { onChange(it) }
+        Text(hint, color = ReliquaryMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (value.isNotBlank()) {
+                CoverImage(value, label, Modifier.width(44.dp).height(66.dp).clip(RoundedCornerShape(6.dp)))
+            }
+            if (isDesktopPlatform()) {
+                PillButton(
+                    label = "Upload image…",
+                    icon = null,
+                    background = MaterialTheme.colorScheme.surfaceVariant,
+                    foreground = MaterialTheme.colorScheme.onBackground,
+                ) { pickAndStoreImage()?.let { onChange(it) } }
+            }
+            if (value.isNotBlank()) {
+                Text(
+                    "Clear",
+                    color = ReliquaryMuted,
+                    fontSize = 12.sp,
+                    modifier = Modifier.clickable { onChange("") },
+                )
+            }
+        }
+    }
 }
 
 private fun String.orNull(): String? = trim().ifBlank { null }

@@ -6,6 +6,7 @@ import app.cash.sqldelight.coroutines.mapToOne
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.reliquary.app.db.ReliquaryDatabase
 import com.reliquary.app.domain.CollectionItem
+import com.reliquary.app.domain.coverLocked
 import com.reliquary.app.domain.CustomTab
 import com.reliquary.app.domain.EDITION_FIELDS
 import com.reliquary.app.domain.Loan
@@ -200,7 +201,8 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
             creators = candidate.creators ?: existing.creators,
             releaseYear = candidate.releaseYear ?: existing.releaseYear,
             description = candidate.description ?: existing.description,
-            coverUrl = candidate.coverUrl ?: existing.coverUrl,
+            // A user-pinned cover wins; otherwise let the candidate fill/refresh it.
+            coverUrl = if (existing.coverLocked) existing.coverUrl else (candidate.coverUrl ?: existing.coverUrl),
             barcode = candidate.barcode ?: existing.barcode,
             identifierType = candidate.identifierType ?: existing.identifierType,
             identifier = candidate.identifier ?: existing.identifier,

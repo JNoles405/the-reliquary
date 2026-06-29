@@ -476,6 +476,15 @@ fun SettingsScreen(container: AppContainer, navigator: Navigator, onAccentChange
                 ) { openUrl(AppInfo.RELEASES_URL) }
             }
         }
+
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Created by Benjamin J Noles • © 2026 Midnight Skies Dev",
+            color = ReliquaryMuted,
+            fontSize = 12.sp,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
     }
 }
 
@@ -521,6 +530,13 @@ private fun UpdatesSection(container: AppContainer, scope: kotlinx.coroutines.Co
                 },
                 color = ReliquaryMuted,
                 fontSize = 12.sp,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Current version: v${AppInfo.VERSION}",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(10.dp))
 

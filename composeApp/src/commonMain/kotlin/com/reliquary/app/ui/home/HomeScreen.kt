@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.reliquary.app.di.AppContainer
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.Status
+import com.reliquary.app.domain.thumbImage
 import com.reliquary.app.domain.wishPriorityRank
 import com.reliquary.app.tools.RecentlyViewed
 import com.reliquary.app.ui.Navigator
@@ -116,7 +117,7 @@ private fun Rail(title: String, items: List<CollectionItem>, navigator: Navigato
             items.forEach { item ->
                 Column(Modifier.width(120.dp).clickable { navigator.push(Screen.Detail(item.id)) }) {
                     CoverImage(
-                        url = item.coverImage,
+                        url = item.thumbImage,
                         contentDescription = item.title,
                         modifier = Modifier.width(120.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)),
                     )
