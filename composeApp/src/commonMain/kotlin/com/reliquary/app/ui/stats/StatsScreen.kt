@@ -62,6 +62,15 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
     val finished = items.count { !it.wanted && it.status in Status.DONE }
     val finishedPct = if (owned > 0) finished * 100 / owned else 0
     val goal = remember { container.repository.getSetting("stats.completionGoal")?.toIntOrNull() ?: 0 }
+    val thisYear = remember { formatDate(now).substring(0, 4) }
+    val finishedThisYear = remember(items) {
+        items.count { item ->
+            !item.wanted && item.extraJson
+                ?.let { runCatching { ReliquaryJson.decodeFromString<Map<String, String>>(it) }.getOrNull() }
+                ?.get("_finishedAt")?.toLongOrNull()
+                ?.let { formatDate(it).substring(0, 4) == thisYear } == true
+        }
+    }
     val collectionValue = remember(items) {
         items.filter { !it.wanted }.sumOf { item ->
             parseMoney(
@@ -154,6 +163,7 @@ fun StatsScreen(container: AppContainer, navigator: Navigator) {
             StatCard("Favorites", favorites.toString())
             StatCard("On loan", loans.size.toString())
             StatCard("Overdue", overdue.toString())
+            if (finishedThisYear > 0) StatCard("Finished in $thisYear", finishedThisYear.toString())
             if (collectionValue > 0) {
                 StatCard("Collection value", "$" + (round(collectionValue * 100) / 100.0))
             }

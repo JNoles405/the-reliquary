@@ -94,7 +94,15 @@ class ReliquaryRepository(private val db: ReliquaryDatabase) {
     /** Set or clear an item's status. */
     fun updateStatus(itemId: String, status: String?) {
         val item = getItem(itemId) ?: return
-        upsertItem(item.copy(status = status, updatedAt = nowMillis()))
+        // Stamp a finished date the first time an item reaches a "done" status; clear it otherwise.
+        val extras = decodeExtras(item.extraJson).toMutableMap()
+        if (status in Status.DONE) {
+            if (!extras.containsKey("_finishedAt")) extras["_finishedAt"] = nowMillis().toString()
+        } else {
+            extras.remove("_finishedAt")
+        }
+        val extraJson = if (extras.isEmpty()) null else json.encodeToString(extras)
+        upsertItem(item.copy(status = status, extraJson = extraJson, updatedAt = nowMillis()))
     }
 
     /** Append a tag to an item (deduped). */

@@ -20,10 +20,12 @@ class CsvService(private val repository: ReliquaryRepository) {
         "Cover URL", "Description", "Notes", "Status", "Tags", "Wishlist", "Favorite", "Added",
     )
 
-    fun exportCsv(): String {
+    fun exportCsv(): String = exportCsv(repository.allItems())
+
+    fun exportCsv(items: List<CollectionItem>): String {
         val rows = buildList {
             add(exportColumns)
-            repository.allItems().filter { !it.deleted }.forEach { item ->
+            items.filter { !it.deleted }.forEach { item ->
                 add(
                     listOf(
                         item.title,

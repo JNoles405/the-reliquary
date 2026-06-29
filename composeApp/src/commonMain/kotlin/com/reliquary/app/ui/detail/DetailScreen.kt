@@ -123,8 +123,7 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
     val currentStatus = current.status
     val isWanted = current.wanted
 
-    fun setStatus(value: String?) =
-        container.repository.upsertItem(current.copy(status = value, updatedAt = nowMillis()))
+    fun setStatus(value: String?) = container.repository.updateStatus(current.id, value)
     fun setWanted(value: Boolean) =
         container.repository.upsertItem(current.copy(wanted = value, updatedAt = nowMillis()))
 
@@ -433,15 +432,26 @@ fun DetailScreen(container: AppContainer, itemId: String, navigator: Navigator) 
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     photos.forEach { path ->
-                        Box {
-                            CoverImage(path, "Photo", Modifier.width(110.dp).height(150.dp).clip(RoundedCornerShape(8.dp)))
-                            Box(
-                                Modifier.align(Alignment.TopEnd).padding(4.dp).clip(RoundedCornerShape(50))
-                                    .background(Color(0xCC000000)).clickable { setPhotos(photos - path) }
-                                    .padding(horizontal = 7.dp, vertical = 2.dp),
-                            ) {
-                                Text("✕", color = Color.White, fontSize = 12.sp)
+                        Column(Modifier.width(110.dp)) {
+                            Box {
+                                CoverImage(path, "Photo", Modifier.width(110.dp).height(150.dp).clip(RoundedCornerShape(8.dp)))
+                                Box(
+                                    Modifier.align(Alignment.TopEnd).padding(4.dp).clip(RoundedCornerShape(50))
+                                        .background(Color(0xCC000000)).clickable { setPhotos(photos - path) }
+                                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                                ) {
+                                    Text("✕", color = Color.White, fontSize = 12.sp)
+                                }
                             }
+                            Text(
+                                "Set as cover",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clickable {
+                                    container.repository.upsertItem(current.copy(coverUrl = path, coverPath = null, updatedAt = nowMillis()))
+                                }.padding(top = 4.dp),
+                            )
                         }
                     }
                     if (isDesktopPlatform()) {

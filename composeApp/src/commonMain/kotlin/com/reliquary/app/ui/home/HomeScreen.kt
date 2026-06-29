@@ -38,6 +38,9 @@ import com.reliquary.app.ui.theme.ReliquaryMuted
 private fun priorityOf(item: CollectionItem): String? =
     item.extraJson?.let { Regex("\"_wishPriority\"\\s*:\\s*\"([^\"]+)\"").find(it)?.groupValues?.get(1) }
 
+private fun finishedAtOf(item: CollectionItem): Long? =
+    item.extraJson?.let { Regex("\"_finishedAt\"\\s*:\\s*\"?(\\d+)\"?").find(it)?.groupValues?.get(1)?.toLongOrNull() }
+
 @Composable
 fun HomeScreen(container: AppContainer, navigator: Navigator) {
     val items = remember { container.repository.allItems().filter { !it.deleted } }
@@ -46,6 +49,8 @@ fun HomeScreen(container: AppContainer, navigator: Navigator) {
     val owned = items.filter { !it.wanted }
 
     val continueItems = owned.filter { it.status in Status.IN_PROGRESS }
+    val recentlyFinished = owned.mapNotNull { item -> finishedAtOf(item)?.let { item to it } }
+        .sortedByDescending { it.second }.map { it.first }.take(16)
     val dueBack = loans.filter { it.dueAt != null }.sortedBy { it.dueAt }.mapNotNull { byId[it.itemId] }
     val recentlyViewed = RecentlyViewed.load(container.repository).mapNotNull { byId[it] }
     val recentlyAdded = owned.sortedByDescending { it.addedAt }.take(16)
@@ -63,6 +68,7 @@ fun HomeScreen(container: AppContainer, navigator: Navigator) {
         )
 
         Rail("Continue", continueItems, navigator)
+        Rail("Recently finished", recentlyFinished, navigator)
         Rail("Due back", dueBack, navigator)
         Rail("Recently viewed", recentlyViewed, navigator)
         Rail("Recently added", recentlyAdded, navigator)

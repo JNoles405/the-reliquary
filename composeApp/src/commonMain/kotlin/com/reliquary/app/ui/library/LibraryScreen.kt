@@ -52,8 +52,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.rememberCoroutineScope
 import com.reliquary.app.data.nowMillis
 import com.reliquary.app.di.AppContainer
+import com.reliquary.app.sync.defaultSyncFilePath
+import com.reliquary.app.sync.writeTextFile
+import com.reliquary.app.util.isDesktopPlatform
+import com.reliquary.app.util.openUrl
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.reliquary.app.domain.CollectionItem
 import com.reliquary.app.domain.SERIES_KEY
 import com.reliquary.app.domain.Status
@@ -102,6 +110,7 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
     }.collectAsState(emptyList())
     val activeLoans by remember { container.repository.activeLoans() }.collectAsState(emptyList())
     val onLoanIds = remember(activeLoans) { activeLoans.map { it.itemId }.toSet() }
+    val scope = rememberCoroutineScope()
 
     var sort by remember(active) { mutableStateOf(SortOrder.TITLE) }
     var favoritesOnly by remember(active) { mutableStateOf(false) }
@@ -240,6 +249,16 @@ fun LibraryScreen(container: AppContainer, active: ActiveTab, navigator: Navigat
                                 container.repository.getItem(id)?.let { container.repository.upsertItem(it.copy(favorite = true, updatedAt = now)) }
                             }
                             exitSelection()
+                        }
+                        PillButton("Export CSV", null, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onBackground) {
+                            val chosen = selected.toList().mapNotNull { container.repository.getItem(it) }
+                            exitSelection()
+                            if (chosen.isNotEmpty()) scope.launch {
+                                val path = defaultSyncFilePath().replace("reliquary-sync.json", "reliquary-selected.csv")
+                                val csv = withContext(Dispatchers.Default) { container.csvService.exportCsv(chosen) }
+                                withContext(Dispatchers.Default) { writeTextFile(path, csv) }
+                                if (isDesktopPlatform()) openUrl("file:///" + path.replace("\\", "/"))
+                            }
                         }
                         PillButton("Mark finished", null, MaterialTheme.colorScheme.primary, Color.Black) {
                             selected.toList().forEach { id ->
